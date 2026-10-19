@@ -226,37 +226,32 @@ const lotusGarden: Drawer = (ctx, r) => {
   base(ctx, r);
   const { x, y, w, h } = r;
   const cx = x + w / 2;
-  // hall
-  box(ctx, x + 30, y + 110, w - 60, h - 110, C.cream);
-  for (let i = x + 40; i < x + w - 40; i += 24) px(ctx, i, y + 130, 8, 50, C.darkred);
-  // three curved pagoda roofs
+  const slate = "#4a5f6e";
+  // hall: cream walls with red trim and a red double door
+  box(ctx, x + 30, y + 120, w - 60, h - 120, C.cream);
+  px(ctx, x + 34, y + 124, w - 68, 6, C.red);
+  for (const wx of [x + 50, x + w - 74]) { box(ctx, wx, y + 150, 24, 30, C.red); px(ctx, wx + 6, y + 156, 12, 18, C.gold2); }
+  // two tiers of slate roof with red eaves and upturned corners
   const roofs = [
-    { top: y + 86, w: w, h: 34 },
-    { top: y + 46, w: w - 50, h: 32 },
-    { top: y + 8, w: w - 110, h: 30 },
+    { top: y + 92, w: w, h: 32 },
+    { top: y + 40, w: w - 70, h: 36 },
   ];
   for (const rf of roofs) {
     tri(ctx, cx - rf.w / 2 - 6, rf.top - 6, rf.w + 12, rf.h + 6, C.out);
-    tri(ctx, cx - rf.w / 2, rf.top, rf.w, rf.h, C.darkgreen);
-    px(ctx, cx - rf.w / 2 - 10, rf.top + rf.h - 8, 14, 8, C.darkgreen);
-    px(ctx, cx + rf.w / 2 - 4, rf.top + rf.h - 8, 14, 8, C.darkgreen);
-    px(ctx, cx - rf.w / 2 - 10, rf.top + rf.h - 2, 14, 4, C.out);
-    px(ctx, cx + rf.w / 2 - 4, rf.top + rf.h - 2, 14, 4, C.out);
-    box(ctx, cx - rf.w / 2 + 30, rf.top + rf.h, rf.w - 60, 10, C.darkred);
+    tri(ctx, cx - rf.w / 2, rf.top, rf.w, rf.h, slate);
+    px(ctx, cx - rf.w / 2 - 14, rf.top + rf.h - 10, 18, 6, C.out);
+    px(ctx, cx + rf.w / 2 - 4, rf.top + rf.h - 10, 18, 6, C.out);
+    px(ctx, cx - rf.w / 2 - 12, rf.top + rf.h - 8, 14, 4, slate);
+    px(ctx, cx + rf.w / 2 - 2, rf.top + rf.h - 8, 14, 4, slate);
+    px(ctx, cx - rf.w / 2 - 4, rf.top + rf.h, rf.w + 8, 8, C.out);
+    px(ctx, cx - rf.w / 2 - 2, rf.top + rf.h + 1, rf.w + 4, 6, C.red);
   }
-  px(ctx, cx - 3, y - 12, 6, 22, C.out);
-  disc(ctx, cx, y - 14, 6, C.gold, C.out);
-  // lanterns
-  for (const lx of [x + 40, x + w - 40]) {
-    px(ctx, lx - 2, y + 120, 4, 20, C.out);
-    box(ctx, lx - 10, y + 136, 20, 24, C.red);
-    px(ctx, lx - 2, y + 140, 4, 16, C.gold);
-  }
-  door(ctx, cx - 20, y + h - 56, 40, 52, C.darkred, false);
+  box(ctx, cx - 24, y + 76, 48, 20, C.cream);
+  px(ctx, cx - 3, y + 16, 6, 26, C.out);
+  disc(ctx, cx, y + 14, 6, C.gold, C.out);
+  door(ctx, cx - 20, y + h - 56, 40, 52, C.red, false);
   px(ctx, cx - 2, y + h - 54, 4, 48, C.out);
-  // lotus pond
-  pond(ctx, x + 36, y + h + 12, 34, 16);
-  bush(ctx, x + w - 24, y + h + 8, 0.8, true);
+  px(ctx, cx - 30, y + h - 4, 60, 4, C.stone2);
 };
 
 const openNode: Drawer = (ctx, r) => {
@@ -424,31 +419,35 @@ const florist: Drawer = (ctx, r) => {
 
 const peaceGarden: Drawer = (ctx, r) => {
   const { x, y, w, h } = r;
-  // low hedge border
-  for (let i = 0; i < w; i += 20) bush(ctx, x + i + 10, y + 6, 0.6);
-  for (let i = 0; i < w; i += 20) bush(ctx, x + i + 10, y + h - 6, 0.6);
-  for (let i = 20; i < h - 20; i += 20) bush(ctx, x + 6, y + i, 0.6);
-  for (let i = 20; i < h - 20; i += 20) bush(ctx, x + w - 6, y + i, 0.6);
-  // gravel path cross
-  px(ctx, x + w / 2 - 12, y + 10, 24, h - 20, C.stone);
-  px(ctx, x + 10, y + h / 2 - 12, w - 20, 24, C.stone);
-  pond(ctx, x + w / 2, y + h / 2, 48, 28);
-  bench(ctx, x + 30, y + 40);
-  bench(ctx, x + w - 74, y + 40);
-  bench(ctx, x + 30, y + h - 50);
-  bench(ctx, x + w - 74, y + h - 50);
-  for (let i = 0; i < 8; i++) flower(ctx, x + 24 + i * 10, y + h / 2 - 30, [C.pink, C.yellow, C.white][i % 3]);
-  for (let i = 0; i < 8; i++) flower(ctx, x + w - 100 + i * 10, y + h / 2 + 30, [C.purple, C.yellow, C.white][i % 3]);
-  // small bell on a frame
-  px(ctx, x + w / 2 - 20, y + 20, 4, 30, C.out);
-  px(ctx, x + w / 2 + 16, y + 20, 4, 30, C.out);
-  px(ctx, x + w / 2 - 22, y + 18, 44, 4, C.out);
-  disc(ctx, x + w / 2, y + 34, 8, C.gold, C.out);
+  const cx = x + w / 2, cy = y + h / 2;
+  // hedge ring (oval) with a gap at the bottom for the entrance
+  for (let a = 0; a < Math.PI * 2; a += 0.11) {
+    if (a > Math.PI * 0.38 && a < Math.PI * 0.62) continue;
+    bush(ctx, cx + Math.cos(a) * (w / 2 - 8), cy + Math.sin(a) * (h / 2 - 8), 0.55);
+  }
+  pond(ctx, cx - 20, cy + 10, 56, 30);
+  px(ctx, cx - 26, cy - 50, 12, 36, C.darkbrown); // post
+  bench(ctx, x + 36, cy - 30);
+  bench(ctx, x + w - 90, cy - 40);
+  bench(ctx, x + 40, cy + 50);
+  // flower bed (round, dotted) and blossom trees
+  disc(ctx, cx + 80, cy + 30, 20, C.darkbrown, C.out);
+  for (let i = 0; i < 10; i++) px(ctx, cx + 66 + (i * 7) % 28, cy + 18 + (i * 11) % 24, 4, 4, [C.pink, C.yellow, C.red, C.white][i % 4]);
+  for (const [tx, ty] of [[x + 28, cy + 40], [x + w - 36, y + 50], [cx + 20, y + 40]]) {
+    px(ctx, tx - 4, ty - 14, 8, 16, C.darkbrown);
+    disc(ctx, tx, ty - 30, 24, C.pink2, C.out);
+    disc(ctx, tx - 8, ty - 38, 10, "#fbd3e3");
+  }
+  for (let i = 0; i < 10; i++) flower(ctx, x + 30 + i * 24, y + 24, [C.pink, C.yellow, C.white][i % 3]);
 };
 
 const marketSquare: Drawer = (ctx, r) => {
   const { x, y, w, h } = r;
   cobbles(ctx, x, y, w, h);
+  for (let i = 0; i < w; i += 18) bush(ctx, x + i + 9, y - 2, 0.5);
+  const bc = [C.red, C.gold, C.green, C.blue, C.pink, C.orange];
+  px(ctx, x, y + 10, w, 2, C.out);
+  for (let i = 0; i < w - 8; i += 14) tri(ctx, x + i + 2, y + 12, 8, 6, bc[(i / 14) % 6], 2);
   stall(ctx, x + 36, y + 30, C.red, C.white);
   stall(ctx, x + 166, y + 44, C.pink, C.white);
   stall(ctx, x + 296, y + 30, C.orange, C.gold2);

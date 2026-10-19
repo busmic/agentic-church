@@ -255,8 +255,8 @@ export function stall(ctx: Ctx, x: number, y: number, a: string, b: string) {
 }
 
 export function cobbles(ctx: Ctx, x: number, y: number, w: number, h: number) {
-  px(ctx, x, y, w, h, C.stone2);
-  for (let yy = 0; yy < h; yy += 12) for (let xx = (yy / 12) % 2 ? 6 : 0; xx < w; xx += 12) px(ctx, x + xx + 1, y + yy + 1, 10, 10, C.stone);
+  px(ctx, x, y, w, h, "#d9ccb0");
+  for (let yy = 0; yy < h; yy += 12) for (let xx = (yy / 12) % 2 ? 6 : 0; xx < w; xx += 12) px(ctx, x + xx + 1, y + yy + 1, 10, 10, "#e4d8bf");
 }
 
 export function sign(ctx: Ctx, x: number, y: number, w: number, color: string, glyph: (cx: number, cy: number) => void) {

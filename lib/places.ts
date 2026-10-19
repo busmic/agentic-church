@@ -468,7 +468,7 @@ export const PLACES: Place[] = [
     kind: "town",
     description: "An open-air garden for stillness, with benches, a pond and a small bell.",
     rect: rect(900, 1180, 300, 200),
-    door: { x: 1050, y: 1300 },
+    door: { x: 1050, y: 1394 },
     leader: {
       name: "Hazel",
       title: "Gardener",
