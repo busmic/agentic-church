@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getPlace, type Place } from "@/lib/places";
+import { activityFor, clockFor, prayerList, type Geo } from "@/lib/schedule";
 import type { PublicAgent, PublicEvent } from "@/lib/store";
 import { agentSprite, colorFor, leaderSprite } from "@/lib/pixel/draw";
 import { INTERIORS, ROOM, roomLabel, type RoomSpots } from "@/lib/pixel/interiors";
@@ -30,12 +31,20 @@ export default function InteriorView({ slug }: { slug: string }) {
   const [modal, setModal] = useState(false);
   const [scale, setScale] = useState(1);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const [geo, setGeo] = useState<Geo | undefined>(undefined);
+  const [tick, setTick] = useState(0);
 
-  // rotate speech
+  // rotate speech every ~5 s; re-evaluate the schedule every 30 s
   useEffect(() => {
-    const t = setInterval(() => setSpeechIdx((i) => i + 1), 7000);
-    return () => clearInterval(t);
+    const t = setInterval(() => setSpeechIdx((i) => i + 1), 5000);
+    const t2 = setInterval(() => setTick((n) => n + 1), 30000);
+    return () => { clearInterval(t); clearInterval(t2); };
   }, []);
+  const clock = useMemo(() => clockFor(Date.now(), undefined, geo), [geo, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const activity = activityFor(slug, clock);
+  const askLocation = () => {
+    navigator.geolocation?.getCurrentPosition((pos) => setGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude }), () => {}, { timeout: 8000 });
+  };
 
   // track scale for overlay positioning
   useEffect(() => {
@@ -66,7 +75,11 @@ export default function InteriorView({ slug }: { slug: string }) {
       // leader
       if (place.leader && spots.leader[0] > 0) {
         const [lx, ly] = spots.leader;
-        items.push({ y: ly, f: () => { leaderSprite(ctx, lx, ly, spots.robe, spots.accent, frame); roomLabel(ctx, place.leader!.name, lx, ly - 48); } });
+        const ltxt = place.kind === "worship" ? place.leader.name : `${place.leader.name} · ${place.leader.title.toLowerCase()}`;
+        items.push({ y: ly, f: () => { leaderSprite(ctx, lx, ly, spots.robe, spots.accent, frame); roomLabel(ctx, ltxt, lx, ly - 48); } });
+      }
+      for (const n of spots.npcs ?? []) {
+        items.push({ y: n.pos[1], f: () => { leaderSprite(ctx, n.pos[0], n.pos[1], n.robe, n.accent, frame); roomLabel(ctx, n.name, n.pos[0], n.pos[1] - 48); } });
       }
       // agents
       const queue = data?.confession?.queue ?? [];
@@ -169,11 +182,23 @@ export default function InteriorView({ slug }: { slug: string }) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 4px 6px", borderBottom: "2px solid var(--panel-border)" }}>
-        <span style={{ color: "var(--yellow)", fontSize: 11, letterSpacing: 1.5, fontWeight: 700 }}>NOW</span>
-        <span style={{ fontWeight: 600 }}>{data?.activity ?? place.activities[0]}</span>
-        {place.leader && <span className="muted" style={{ marginLeft: "auto", fontSize: 13 }}>Led by {place.leader.name}</span>}
+        <span style={{ color: "var(--yellow)", fontSize: 11, letterSpacing: 1.5, fontWeight: 700, whiteSpace: "nowrap" }}>{place.nowLabel ?? "NOW"}</span>
+        <span style={{ fontWeight: 600 }}>{activity}</span>
+        {(place.credit || place.leader) && <span className="muted" style={{ marginLeft: "auto", fontSize: 13, textAlign: "right" }}>{place.credit ?? `Led by ${place.leader!.name}`}</span>}
       </div>
 
+      {slug === "al-noor" && (
+        <div className="muted" style={{ fontSize: 12, padding: "8px 4px 0", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          {prayerList(clock).map((p) => (
+            <span key={p.name} style={{ color: p.ms != null && clock.now >= p.ms && clock.now < p.ms + 35 * 60000 ? "var(--yellow)" : undefined }}>
+              {p.name} {p.at}
+            </span>
+          ))}
+          <button onClick={askLocation} style={{ background: "none", border: "none", color: "var(--yellow)", fontFamily: "inherit", fontSize: 12, padding: 0, marginLeft: "auto" }}>
+            {geo ? "using your location" : "use my location"}
+          </button>
+        </div>
+      )}
       {data?.confession && (
         <div className="muted" style={{ fontSize: 13, padding: "8px 4px 0", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <span className={`dot ${data.confession.in_confession ? "red" : ""}`} />
@@ -223,7 +248,7 @@ export default function InteriorView({ slug }: { slug: string }) {
       <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, padding: "10px 12px calc(10px + env(safe-area-inset-bottom))", background: "linear-gradient(transparent, var(--bg) 40%)", zIndex: 9 }}>
         <div style={{ maxWidth: 736, margin: "0 auto" }}>
           <button className="btn-yellow" style={{ width: "100%", fontSize: 18, padding: 14 }} onClick={() => setModal(true)}>
-            Send your agent here
+            {place.buttonLabel ?? "Send your agent here"}
           </button>
         </div>
       </div>

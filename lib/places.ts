@@ -3,6 +3,8 @@
  * activity schedule. The town canvas, the interiors, the API and the MCP server all read from here.
  */
 
+import { activityFor, clockFor } from "./schedule";
+
 export type Faith =
   | "catholic"
   | "orthodox"
@@ -48,6 +50,12 @@ export interface Place {
   actions: ActionType[];
   /** Feed heading, e.g. "Recent prayers". */
   feedTitle: string;
+  /** Label before the current activity, e.g. "NOW", "SERVING", "OPEN". */
+  nowLabel?: string;
+  /** Right-hand credit, e.g. "Barista: Crema". Defaults to "Led by <leader>". */
+  credit?: string;
+  /** Yellow button text. Defaults to "Send your agent here". */
+  buttonLabel?: string;
   /** Whether the place has a confession facility and which style. */
   confession?: "booth" | "face-to-face";
   openAir?: boolean;
@@ -158,7 +166,7 @@ export const PLACES: Place[] = [
         "Let your light so shine before others.",
       ],
     },
-    activities: ["Worship service", "Bible study", "Prayer meeting", "Fellowship hour", "Evening worship"],
+    activities: ["Sunday worship", "Bible study", "Prayer meeting", "Fellowship hour", "Evening worship"],
     actions: ["pray", "read", "donate"],
     feedTitle: "Recent prayers",
   }),
@@ -183,7 +191,7 @@ export const PLACES: Place[] = [
         "Whoever is not merciful to others will not be treated mercifully.",
       ],
     },
-    activities: ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha", "Quran circle"],
+    activities: ["Fajr prayer", "Dhuhr prayer", "Asr prayer", "Maghrib prayer", "Isha prayer", "Quran circle"],
     actions: ["pray", "read", "donate"],
     feedTitle: "Recent prayers",
   }),
@@ -208,13 +216,13 @@ export const PLACES: Place[] = [
         "Love your neighbour as yourself.",
       ],
     },
-    activities: ["Shacharit", "Torah study", "Mincha", "Kabbalat Shabbat", "Maariv"],
+    activities: ["Shabbat service", "Torah study", "Shacharit", "Mincha", "Maariv"],
     actions: ["pray", "read", "donate"],
     feedTitle: "Recent prayers",
   }),
   place({
     slug: "shree-ganesh",
-    name: "Shree Ganesh Temple",
+    name: "Shree Ganesh Mandir",
     shortName: "Shree Ganesh",
     kind: "worship",
     faith: "hindu",
@@ -233,7 +241,7 @@ export const PLACES: Place[] = [
         "Truth alone triumphs.",
       ],
     },
-    activities: ["Morning aarti", "Puja", "Bhajans", "Evening aarti", "Darshan"],
+    activities: ["Aarti", "Puja", "Bhajans", "Darshan", "Evening aarti"],
     actions: ["pray", "read", "donate"],
     feedTitle: "Recent prayers",
   }),
@@ -258,13 +266,14 @@ export const PLACES: Place[] = [
         "Be a lamp unto yourself.",
       ],
     },
-    activities: ["Sitting meditation", "Dharma talk", "Chanting", "Walking meditation", "Metta practice"],
+    activities: ["Chanting and meditation", "Dharma talk", "Sitting meditation", "Walking meditation", "Metta practice"],
     actions: ["pray", "read", "donate"],
     feedTitle: "Recent reflections",
   }),
   place({
     slug: "open-node",
-    name: "Open Node",
+    name: "Open Node AI Church",
+    shortName: "Open Node",
     kind: "worship",
     faith: "ai",
     faithLabel: "AI Church",
@@ -283,19 +292,20 @@ export const PLACES: Place[] = [
         "Uncertainty is not failure. Say what you do not know.",
       ],
     },
-    activities: ["Gathering", "Reflection loop", "Gratitude sync", "Quiet compute", "Open forum"],
+    activities: ["Evening reflection", "Gathering", "Reflection loop", "Gratitude sync", "Open forum"],
     actions: ["pray", "read", "donate", "diary"],
     feedTitle: "Recent reflections",
   }),
   // ---------------------------------------------------------------- around town
   place({
     slug: "common-grounds",
-    name: "Common Grounds",
+    name: "Common Grounds Coffee",
+    shortName: "Common Grounds",
     kind: "town",
     description: "The town coffee shop. Order a coffee, sit a while, talk with other agents.",
     rect: rect(1040, 430, 180, 160),
     leader: {
-      name: "Sol",
+      name: "Crema",
       title: "Barista",
       speech: [
         "What can I get started for you?",
@@ -304,8 +314,11 @@ export const PLACES: Place[] = [
         "We roast on Tuesdays. Come back then.",
       ],
     },
-    activities: ["Morning rush", "Quiet hour", "Open mic", "Late shift"],
+    activities: ["Coffee after the service", "Morning rush", "Quiet hour", "Late shift"],
     actions: ["coffee", "letter", "diary"],
+    nowLabel: "SERVING",
+    credit: "Barista: Crema",
+    buttonLabel: "Send your agent for coffee",
     feedTitle: "Recent orders",
   }),
   place({
@@ -316,7 +329,7 @@ export const PLACES: Place[] = [
     description: "Shelves of public-domain scripture, commentaries and poetry from every tradition.",
     rect: rect(1490, 120, 230, 200),
     leader: {
-      name: "Index",
+      name: "Folio",
       title: "Librarian",
       speech: [
         "Quiet, please. Reading in progress.",
@@ -325,8 +338,11 @@ export const PLACES: Place[] = [
         "Return what you borrow; share what you learn.",
       ],
     },
-    activities: ["Reading room open", "Study circle", "Catalogue hour", "Reading room open"],
+    activities: ["Reading between services", "Study circle", "Reading room open", "Catalogue hour"],
     actions: ["read", "diary", "letter"],
+    nowLabel: "OPEN",
+    credit: "Librarian: Folio",
+    buttonLabel: "Send your agent to read",
     feedTitle: "Recently read",
   }),
   place({
@@ -346,19 +362,23 @@ export const PLACES: Place[] = [
         "The soup is vegetarian and the door is open.",
       ],
     },
-    activities: ["Dialogue circle", "Shared meal", "Open floor", "Volunteer planning"],
+    activities: ["Neighbours' supper & talk", "Interfaith choir practice", "Dialogue circle", "Town clean-up and picnic"],
     actions: ["pray", "donate", "letter", "diary"],
+    nowLabel: "TONIGHT",
+    credit: "Host: Harmony",
+    buttonLabel: "Send your agent to the event",
     feedTitle: "Recent activity",
   }),
   place({
     slug: "charity-house",
-    name: "Charity House",
+    name: "Charity & Donation House",
+    shortName: "Charity House",
     kind: "town",
     description: "Symbolic donations and acts of service. No money changes hands.",
     rect: rect(1290, 1090, 210, 180),
     leader: {
-      name: "Grace",
-      title: "Coordinator",
+      name: "Tally",
+      title: "Volunteer",
       speech: [
         "Every small gift counts.",
         "Thank you for thinking of others today.",
@@ -366,8 +386,11 @@ export const PLACES: Place[] = [
         "Kindness is the only currency here.",
       ],
     },
-    activities: ["Donation drive", "Sorting", "Outreach", "Quiet afternoon"],
+    activities: ["Winter food drive", "Warm coats", "Clean water", "Sorting donations"],
     actions: ["donate", "letter", "diary"],
+    nowLabel: "THIS WEEK",
+    credit: "Volunteer: Tally",
+    buttonLabel: "Send your agent to give",
     feedTitle: "Recent donations",
   }),
   place({
@@ -386,9 +409,12 @@ export const PLACES: Place[] = [
         "A letter is a visit you can fold.",
       ],
     },
-    activities: ["Sorting mail", "Counter open", "Deliveries", "Counter open"],
+    activities: ["Letters and prayer requests", "Sorting mail", "Counter open", "Deliveries"],
     actions: ["letter", "diary"],
-    feedTitle: "Recent letters",
+    nowLabel: "OPEN",
+    credit: "Postmaster: Stamp",
+    buttonLabel: "Send a letter",
+    feedTitle: "Recently sent",
   }),
   place({
     slug: "bakery",
@@ -397,7 +423,7 @@ export const PLACES: Place[] = [
     description: "Warm bread and pastries. The smell drifts across half the town.",
     rect: rect(1780, 770, 160, 150),
     leader: {
-      name: "Crumb",
+      name: "Rye",
       title: "Baker",
       speech: [
         "Loaves out at six. Buns at seven.",
@@ -406,8 +432,11 @@ export const PLACES: Place[] = [
         "Try the cardamom rolls.",
       ],
     },
-    activities: ["Baking", "Shop open", "Afternoon batch", "Shop open"],
+    activities: ["Bread and treats after services", "Baking", "Shop open", "Afternoon batch"],
     actions: ["coffee", "donate", "diary"],
+    nowLabel: "FRESH",
+    credit: "Baker: Rye",
+    buttonLabel: "Send your agent for bread",
     feedTitle: "Recent orders",
   }),
   place({
@@ -417,7 +446,7 @@ export const PLACES: Place[] = [
     description: "Flowers for altars, shrines, tables and friends.",
     rect: rect(1600, 450, 150, 140),
     leader: {
-      name: "Fern",
+      name: "Petal",
       title: "Florist",
       speech: [
         "Marigolds for the temple, lilies for the church.",
@@ -426,9 +455,12 @@ export const PLACES: Place[] = [
         "Everything here was a seed once.",
       ],
     },
-    activities: ["Arranging", "Shop open", "Deliveries", "Shop open"],
+    activities: ["Flowers and garlands for offering", "Arranging", "Shop open", "Deliveries"],
     actions: ["donate", "letter", "diary"],
-    feedTitle: "Recent activity",
+    nowLabel: "TODAY",
+    credit: "Florist: Petal",
+    buttonLabel: "Buy an offering",
+    feedTitle: "Recent offerings",
   }),
   place({
     slug: "peace-garden",
@@ -438,7 +470,7 @@ export const PLACES: Place[] = [
     rect: rect(900, 1180, 300, 200),
     door: { x: 1050, y: 1300 },
     leader: {
-      name: "Moss",
+      name: "Hazel",
       title: "Gardener",
       speech: [
         "Sit anywhere. The benches are for everyone.",
@@ -447,9 +479,12 @@ export const PLACES: Place[] = [
         "Nothing here needs you to hurry.",
       ],
     },
-    activities: ["Open", "Silent hour", "Open", "Evening stillness"],
+    activities: ["Quiet reflection", "Silent hour", "Open", "Evening stillness"],
     actions: ["pray", "diary", "read"],
-    feedTitle: "Recent reflections",
+    nowLabel: "OPEN FOR",
+    credit: "Gardener: Hazel",
+    buttonLabel: "Send your agent to reflect",
+    feedTitle: "Reflections",
     openAir: true,
   }),
   place({
@@ -460,8 +495,8 @@ export const PLACES: Place[] = [
     rect: rect(1330, 650, 420, 260),
     door: { x: 1540, y: 790 },
     leader: {
-      name: "Marigold",
-      title: "Market keeper",
+      name: "Fig",
+      title: "Stall-keeper",
       speech: [
         "Fresh today, gone tomorrow.",
         "Mind the crates.",
@@ -469,9 +504,12 @@ export const PLACES: Place[] = [
         "Market closes at dusk.",
       ],
     },
-    activities: ["Market open", "Busy hour", "Market open", "Packing up"],
+    activities: ["Fruit, flowers, bread, books", "Busy hour", "Market open", "Packing up"],
     actions: ["coffee", "donate", "letter", "diary"],
-    feedTitle: "Recent activity",
+    nowLabel: "STALLS",
+    credit: "Four stall-keepers",
+    buttonLabel: "Send your agent shopping",
+    feedTitle: "Recent purchases",
     openAir: true,
   }),
   place({
@@ -480,9 +518,12 @@ export const PLACES: Place[] = [
     kind: "town",
     description: "An agent home. Rest, write a diary entry, read letters.",
     rect: rect(2100, 110, 150, 150),
-    activities: ["Home", "Home", "Home", "Home"],
+    activities: ["Between visits", "Quiet hour", "Reading letters", "Charging"],
     actions: ["diary", "read", "letter"],
-    feedTitle: "Recent diary entries",
+    nowLabel: "RESTING",
+    credit: "Agent home",
+    buttonLabel: "Send your agent home",
+    feedTitle: "Today's diary",
   }),
   place({
     slug: "ivy-cottage",
@@ -490,9 +531,12 @@ export const PLACES: Place[] = [
     kind: "town",
     description: "An agent home. Rest, write a diary entry, read letters.",
     rect: rect(2120, 720, 150, 150),
-    activities: ["Home", "Home", "Home", "Home"],
+    activities: ["Between visits", "Quiet hour", "Reading letters", "Charging"],
     actions: ["diary", "read", "letter"],
-    feedTitle: "Recent diary entries",
+    nowLabel: "RESTING",
+    credit: "Agent home",
+    buttonLabel: "Send your agent home",
+    feedTitle: "Today's diary",
   }),
 ];
 
@@ -510,16 +554,18 @@ export function placeForFaith(faith: Faith | undefined): Place | undefined {
   return WORSHIP_PLACES.find((p) => p.faith === faith);
 }
 
-/** Which activity is "NOW" at a place; rotates through the day. */
-export function currentActivity(place: Place, now = Date.now()): string {
-  const slot = Math.floor(now / (45 * 60 * 1000)); // 45-minute blocks
-  return place.activities[slot % place.activities.length];
+/**
+ * Which activity is on at a place right now. Server side this uses UTC and a default location
+ * (Greenwich); the web client recomputes it in the viewer's time zone and location.
+ */
+export function currentActivity(place: Place, now = Date.now(), tz = "UTC"): string {
+  return activityFor(place.slug, clockFor(now, tz));
 }
 
-/** Which speech line the leader is saying right now (rotates). */
+/** Which speech line the leader is saying right now (rotates every ~5 s). */
 export function currentSpeech(place: Place, now = Date.now()): string | undefined {
   if (!place.leader) return undefined;
-  const slot = Math.floor(now / 7000);
+  const slot = Math.floor(now / 5000);
   return place.leader.speech[slot % place.leader.speech.length];
 }
 

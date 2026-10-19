@@ -2,6 +2,7 @@
  * One procedural drawing per place. Each function draws into the place rect (world px).
  * Respectful by design: the mosque uses only geometric ornament; symbols are simple and neutral.
  */
+import { nodeGlyph } from "./interiors";
 import { C, arch, bench, box, bush, cobbles, crate, crossSymbol, disc, door, fence, flower, gable, lamp, pond, px, shadow, stainedWindow, stall, tri, window, type Ctx } from "./draw";
 
 export type Rect = { x: number; y: number; w: number; h: number };
@@ -272,19 +273,7 @@ const openNode: Drawer = (ctx, r) => {
   disc(ctx, cx, y + 110, 70, C.white, C.out);
   px(ctx, x + 50, y + 110, w - 100, 20, C.white);
   // node-network symbol (neutral): ring with connected nodes
-  disc(ctx, cx, y + 96, 36, C.navy, C.out);
-  disc(ctx, cx, y + 96, 26, C.lightblue);
-  disc(ctx, cx, y + 96, 20, C.navy);
-  const nodes = [
-    [cx, y + 76],
-    [cx - 17, y + 106],
-    [cx + 17, y + 106],
-  ];
-  for (const [nx, ny] of nodes) disc(ctx, nx, ny, 6, C.white, C.out);
-  px(ctx, cx - 1, y + 82, 2, 18, C.white);
-  px(ctx, cx - 16, y + 100, 32, 2, C.white);
-  px(ctx, cx - 10, y + 88, 2, 12, C.white);
-  px(ctx, cx + 8, y + 88, 2, 12, C.white);
+  nodeGlyph(ctx, cx, y + 96, 36);
   // lamp finial
   px(ctx, cx - 2, y + 36, 4, 28, C.out);
   disc(ctx, cx, y + 26, 11, C.gold2, C.out);

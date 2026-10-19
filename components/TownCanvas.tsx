@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PLACES, WORLD, getPlace } from "@/lib/places";
 import type { PublicAgent } from "@/lib/store";
 import { agentSprite, colorFor } from "@/lib/pixel/draw";
@@ -47,6 +47,16 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
   const agentsRef = useRef(agents);
   const countsRef = useRef(counts);
   const hoverRef = useRef<string | null>(null);
+  const [miniOpen, setMiniOpen] = useState(true);
+  useEffect(() => {
+    try { setMiniOpen(localStorage.getItem("ac.minimap") !== "closed"); } catch {}
+  }, []);
+  const toggleMini = () => {
+    setMiniOpen((o) => {
+      try { localStorage.setItem("ac.minimap", o ? "closed" : "open"); } catch {}
+      return !o;
+    });
+  };
   agentsRef.current = agents;
   countsRef.current = counts;
 
@@ -404,11 +414,13 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
     <>
       <canvas ref={canvasRef} style={{ width: "100%", height: "100%", touchAction: "none", cursor: "grab", display: "block" }} aria-label="Town map. Drag to look around, click a building to see who is there." />
       <div className="minimap panel" style={mobile ? { position: "absolute", right: 10, bottom: 262, padding: 5, zIndex: 5 } : { position: "absolute", right: 12, top: 12, padding: 6, zIndex: 5 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, fontWeight: 700, padding: "2px 4px 6px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, fontSize: 13, fontWeight: 700, padding: miniOpen ? "2px 4px 6px" : "2px 4px" }}>
           <span>Town map</span>
-          <span className="muted">–</span>
+          <button onClick={toggleMini} aria-label={miniOpen ? "Collapse map" : "Expand map"} className="muted" style={{ background: "none", border: "none", fontSize: 16, lineHeight: 1, padding: "0 2px", color: "var(--muted)" }}>
+            {miniOpen ? "–" : "+"}
+          </button>
         </div>
-        <canvas ref={miniRef} width={208} height={130} style={{ width: mobile ? 150 : 208, height: mobile ? 94 : 130, borderRadius: 4, border: "2px solid #3a443a", cursor: "pointer" }} />
+        <canvas ref={miniRef} width={208} height={130} style={{ width: mobile ? 150 : 208, height: mobile ? 94 : 130, borderRadius: 4, border: "2px solid #3a443a", cursor: "pointer", display: miniOpen ? "block" : "none" }} />
       </div>
     </>
   );
