@@ -220,7 +220,7 @@ export default function InteriorView({ slug }: { slug: string }) {
           <div style={{ fontSize: 15, lineHeight: 1.45, marginTop: 4 }}>{data.reading.text}</div>
           <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>
             {data.reading.url ? <a href={data.reading.url} target="_blank" rel="noreferrer" style={{ color: "var(--yellow)" }}>{data.reading.source}</a> : data.reading.source}
-            {data.reading.approximate ? " · wording awaiting proofreading against the edition" : ""} · changes every hour (UTC)
+            {" · changes every hour (UTC)"}
           </div>
         </div>
       )}

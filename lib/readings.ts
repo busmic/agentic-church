@@ -11,7 +11,7 @@ export interface Passage {
   /** Original-language text where relevant (Arabic for the Quran). */
   original?: string;
   source: string;
-  /** Set when the wording has not yet been proofread word for word against the cited edition. */
+  /** Set only if a passage's wording has not been checked against the cited edition (none currently). */
   approximate?: boolean;
   /** Where the full text of the cited edition can be read. */
   url?: string;
@@ -28,8 +28,9 @@ const DR = "Douay-Rheims Bible, Challoner revision (1899), public domain";
 const KJV = "King James Bible (1611/1769), public domain";
 const PICK = "Quran, Arabic text; English by M. M. Pickthall, The Meaning of the Glorious Koran (1930), public domain";
 const JPS = "JPS 1917 Tanakh, public domain";
-const GITA = "The Bhagavadgîtâ, tr. Kâshinâth Trimbak Telang, Sacred Books of the East vol. 8 (Oxford, 1882), public domain";
-export const GITA_SOURCE_URL = "https://sacred-texts.com/hin/sbe08/index.htm";
+const GITA = "The Bhagavadgîtâ, tr. Kâshinâth Trimbak Telang, Sacred Books of the East vol. 8 (Oxford, 1882; text as in the 2nd ed., 1908), public domain";
+/** Internet Archive scan of SBE vol. 8, 2nd ed. (University of Toronto copy); same text at https://sacred-texts.com/hin/sbe08/ */
+export const GITA_SOURCE_URL = "https://archive.org/details/bhagavadgtwithsa00tela";
 const DHP = "Dhammapada, translated by F. Max Müller (Sacred Books of the East vol. 10, 1881), public domain";
 const ADA = "Ada Lovelace, Notes on L. F. Menabrea's Sketch of the Analytical Engine (1843), public domain";
 const TUR = "Alan Turing, Computing Machinery and Intelligence, Mind 59 (1950), public domain";
@@ -195,22 +196,22 @@ const TORAH_EXCERPTS: { ref: string; text: string }[] = [
 ];
 
 const shreeGanesh: Passage[] = [
-  { ref: "Gita 2.47, tr. Telang", text: "Your concern is with action alone, never with results. Let not the fruit of action be your motive, nor let your attachment be to inaction.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 2.20, tr. Telang", text: "He is not born, nor does he ever die; nor, having existed, does he cease to be. Unborn, everlasting, unchangeable and primeval, he is not killed when the body is killed.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 2.48, tr. Telang", text: "Perform actions, O Dhananjaya, dwelling in union with the divine, renouncing attachments, and balanced evenly in success and failure; equanimity is called yoga.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 4.7-8, tr. Telang", text: "Whenever there is a decay of piety and a rise of impiety, then I come into being. For the protection of the good, for the destruction of evil-doers, and for the establishing of piety, I am born age after age.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 6.5, tr. Telang", text: "Let a man raise himself by his own self; let him not lower himself. The self alone is the friend of the self, and the self alone is the enemy of the self.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 9.22, tr. Telang", text: "To those who worship Me alone, thinking of no other, who are ever devout, I bring attainment of what they have not, and security in what they have.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 9.26, tr. Telang", text: "Whoever offers to Me with devotion a leaf, a flower, a fruit, or water, that offering of love from the pure of heart I accept.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 12.13-14, tr. Telang", text: "He who hates no being, who is friendly and compassionate, free from the thought of 'mine' and of 'I', equal in pain and pleasure, and forgiving; ever content, self-controlled, firm in resolve, with mind and understanding fixed on Me, that devotee is dear to Me.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 2.62-63, tr. Telang", text: "In one who dwells on the objects of sense, attachment to them arises; from attachment springs desire; from desire, anger; from anger comes delusion; from delusion, loss of memory; from loss of memory, the destruction of understanding; and with that, one perishes.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 3.35, tr. Telang", text: "Better is one's own duty, though imperfectly done, than the duty of another well performed.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 10.20, tr. Telang", text: "I am the self, O Gudakesha, seated in the hearts of all beings; I am the beginning and the middle and the end of all beings.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 18.66, tr. Telang", text: "Abandoning all duties, come to Me alone for refuge; I will release you from all sins; grieve not.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 2.14, tr. Telang", text: "The contacts of the senses with their objects, which give cold and heat, pleasure and pain, come and go and are impermanent; bear them patiently, O Bharata.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 5.18, tr. Telang", text: "The wise look with an equal eye on a Brahmana endowed with learning and humility, on a cow, an elephant, a dog, and an outcaste.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 6.19, tr. Telang", text: "As a lamp in a windless place does not flicker, such is the likeness of the yogi of subdued mind, practising union with the self.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
-  { ref: "Gita 17.20, tr. Telang", text: "That gift which is given to one who does nothing in return, with the thought that it ought to be given, in a fit place and time and to a worthy person, is held to be of goodness.", source: GITA, approximate: true, url: GITA_SOURCE_URL },
+  { ref: "Gita 2.47, tr. Telang", text: "Your business is with action alone; not by any means with fruit. Let not the fruit of action be your motive (to action). Let not your attachment be (fixed) on inaction.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 2.20, tr. Telang", text: "He is not born, nor does he ever die, nor, having existed, does he exist no more. Unborn, everlasting, unchangeable, and very ancient, he is not killed when the body is killed.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 2.48, tr. Telang", text: "Having recourse to devotion, O Dhanañgaya! perform actions, casting off (all) attachment, and being equable in success or ill-success; (such) equability is called devotion.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 4.7-8, tr. Telang", text: "Whensoever, O descendant of Bharata! piety languishes, and impiety is in the ascendant, I create myself. I am born age after age, for the protection of the good, for the destruction of evil-doers, and the establishment of piety.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 6.5, tr. Telang", text: "(A man) should elevate his self by his self; he should not debase his self, for even (a man's) own self is his friend, (a man's) own self is also his enemy.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 9.22, tr. Telang", text: "To those men who worship me, meditating on me and on no one else, and who are constantly devoted, I give new gifts and preserve what is acquired by them.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 9.26, tr. Telang", text: "Whoever with devotion offers me leaf, flower, fruit, water, that, presented with devotion, I accept from him whose self is pure.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 12.13-14, tr. Telang", text: "That devotee of mine, who hates no being, who is friendly and compassionate, who is free from egoism, and from (the idea that this or that is) mine, to whom happiness and misery are alike, who is forgiving, contented, constantly devoted, self-restrained, and firm in his determinations, and whose mind and understanding are devoted to me, he is dear to me.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 2.62-63, tr. Telang", text: "The man who ponders over objects of sense forms an attachment to them; from (that) attachment is produced desire; and from desire anger is produced; from anger results want of discrimination; from want of discrimination, confusion of the memory; from confusion of the memory, loss of reason; and in consequence of loss of reason he is utterly ruined.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 3.35, tr. Telang", text: "One's own duty, though defective, is better than another's duty well performed. Death in (performing) one's own duty is preferable; the (performance of the) duty of others is dangerous.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 10.20, tr. Telang", text: "I am the self, O Gudâkesa! seated in the hearts of all beings. I am the beginning and the middle and the end also of all beings.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 18.66, tr. Telang", text: "Forsaking all duties, come to me as (your) sole refuge. I will release you from all sins. Be not grieved.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 2.14, tr. Telang", text: "The contacts of the senses, O son of Kuntî! which produce cold and heat, pleasure and pain, are not permanent, they are for ever coming and going. Bear them, O descendant of Bharata!", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 5.18, tr. Telang", text: "The wise look upon a Brâhmaṇa possessed of learning and humility, on a cow, an elephant, a dog, and a Svapâka, as alike.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 6.19, tr. Telang", text: "As a light standing in a windless (place) flickers not, that is declared to be the parallel for a devotee, whose mind is restrained, and who devotes his self to abstraction.", source: GITA, url: GITA_SOURCE_URL },
+  { ref: "Gita 17.20, tr. Telang", text: "That gift is said (to be) good, which is given, because it ought to be given, to one who (can) do no service (in return), at a (proper) place and time, and to a (proper) person.", source: GITA, url: GITA_SOURCE_URL },
 ];
 
 const lotusGarden: Passage[] = [
