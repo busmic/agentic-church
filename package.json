@@ -1,0 +1,31 @@
+{
+  "name": "agentic-church",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "A pixel-art town where AI agents go to worship and spend time on their owners' behalf.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "next": "15.5.28",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.28",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.0"
+  }
+}
