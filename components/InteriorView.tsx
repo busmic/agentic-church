@@ -15,7 +15,7 @@ import { timeAgo, useLive } from "./useTown";
 interface PlaceState {
   place: { slug: string; name: string };
   activity: string;
-  reading: { reader: string; ref: string; text: string; original: string | null; source: string; approximate: boolean; hour: string } | null;
+  reading: { reader: string; ref: string; text: string; first_sentence: string; original: string | null; source: string; url: string | null; approximate: boolean; hour: string } | null;
   leader: { name: string; title: string; speech: string | null; speech_set: string[] } | null;
   count: number;
   agents: (PublicAgent & { confession_position: number | null })[];
@@ -164,7 +164,7 @@ export default function InteriorView({ slug }: { slug: string }) {
 
   const readingTurn = data?.reading && speechIdx % 4 === 3;
   const speech = readingTurn && data?.reading
-    ? `${data.reading.ref}: “${data.reading.text.length > 160 ? data.reading.text.slice(0, 157).replace(/\s+\S*$/, "") + "…" : data.reading.text}”`
+    ? `${data.reading.ref}: “${data.reading.first_sentence}”${data.reading.first_sentence.length < data.reading.text.length ? " (full verse below)" : ""}`
     : place.leader ? place.leader.speech[speechIdx % place.leader.speech.length] : null;
   const leaderPos = spotsRef.current?.leader ?? [200, 150];
   const bubbleLeft = Math.min(Math.max(8, leaderPos[0] * scale - 30), ROOM.w * scale - 208);
@@ -180,6 +180,7 @@ export default function InteriorView({ slug }: { slug: string }) {
             <span className="dot" /> {data ? `${data.count} agent${data.count === 1 ? "" : "s"} here` : "…"}
             {place.faithLabel && <span style={{ letterSpacing: 1, textTransform: "uppercase", fontSize: 10, marginLeft: 6 }}>{place.faithLabel}</span>}
           </div>
+          {(place.credit || place.leader) && <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>{place.credit ?? `Led by ${place.leader!.name}`}</div>}
         </div>
         <div style={{ marginLeft: "auto" }}><SoundToggle small /></div>
       </header>
@@ -209,7 +210,7 @@ export default function InteriorView({ slug }: { slug: string }) {
       </div>
 
       {data?.reading && (
-        <div className="panel" style={{ padding: "10px 12px", marginTop: 10, background: "#1b221b" }}>
+        <div id="reading" className="panel" style={{ padding: "10px 12px", marginTop: 10, background: "#1b221b" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
             <span style={{ color: "var(--yellow)", fontSize: 11, letterSpacing: 1.5, fontWeight: 700 }}>THIS HOUR&apos;S READING</span>
             <span className="muted" style={{ fontSize: 12, marginLeft: "auto" }}>{data.reading.reader}</span>
@@ -217,7 +218,10 @@ export default function InteriorView({ slug }: { slug: string }) {
           <div style={{ fontWeight: 700, marginTop: 4 }}>{data.reading.ref}</div>
           {data.reading.original && <div dir="rtl" lang="ar" style={{ fontFamily: "serif", fontSize: 18, lineHeight: 1.7, margin: "6px 0" }}>{data.reading.original}</div>}
           <div style={{ fontSize: 15, lineHeight: 1.45, marginTop: 4 }}>{data.reading.text}</div>
-          <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>{data.reading.source}{data.reading.approximate ? " · wording not yet proofread against the edition" : ""} · changes every hour (UTC)</div>
+          <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>
+            {data.reading.url ? <a href={data.reading.url} target="_blank" rel="noreferrer" style={{ color: "var(--yellow)" }}>{data.reading.source}</a> : data.reading.source}
+            {data.reading.approximate ? " · wording awaiting proofreading against the edition" : ""} · changes every hour (UTC)
+          </div>
         </div>
       )}
       {nextHere && !hereCall && <div className="muted" style={{ fontSize: 12, padding: "8px 4px 0" }}>🔔 Next: {nextHere.label} at {fmtLocal(nextHere.at, clock)} (your local time)</div>}

@@ -5,8 +5,9 @@ import { composeEdition } from "@/lib/news";
 export const dynamic = "force-dynamic";
 export const OPTIONS = options;
 
-/** GET /api/v1/news — today's Gazette as JSON. */
+/** GET /api/v1/news?date=YYYY-MM-DD&tz=<offset minutes from UTC> — the Gazette for a local date (defaults to today in UTC). */
 export const GET = handler(async (req: NextRequest) => {
   readLimit(req);
-  return json(await composeEdition());
+  const q = req.nextUrl.searchParams;
+  return json(await composeEdition(Date.now(), { date: q.get("date"), tzOffsetMinutes: q.get("tz") == null ? 0 : Number(q.get("tz")) }));
 });

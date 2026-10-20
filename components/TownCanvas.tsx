@@ -5,7 +5,7 @@ import type { PublicAgent } from "@/lib/store";
 import { agentSprite, colorFor, leaderSprite, px } from "@/lib/pixel/draw";
 import { catState, drawBirds, drawCat, drawFountainWater, drawMarketBustle, drawRipple } from "@/lib/pixel/ambient";
 import { npcStates } from "@/lib/npcs";
-import { activeCalls, clockFor, type Clock } from "@/lib/schedule";
+import { activeCalls, activityFor, clockFor, type Clock } from "@/lib/schedule";
 import { playCall } from "@/lib/sound";
 import { hitPlace, renderBackground, ROAD_NODES } from "@/lib/pixel/world";
 
@@ -465,14 +465,16 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
         bubble(`${call.kind === "adhan" ? "🕌" : call.kind === "gong" ? "🪘" : call.kind === "candles" ? "🕯️" : "🔔"} ${call.label}`, sx, sy - 40, 200);
       }
       // hourly reading: one leader at a time, rotating every 8 s
-      const rs = readingsRef.current;
+      const quiet = new Set(["Open for prayer", "Quiet"]);
+      const rs = readingsRef.current.filter((r) => quiet.has(activityFor(r.place, clock)));
       if (rs.length && calls.active.length === 0) {
         const r = rs[Math.floor(wall / 8000) % rs.length];
         const p = getPlace(r.place);
         if (p) {
           const [sx, sy] = toScreen(p.rect.x + p.rect.w / 2, p.rect.y);
           if (sx > -200 && sx < w + 200 && sy > -40 && sy < h + 200) {
-            const short = r.text.length > 110 ? r.text.slice(0, 107).replace(/\s+\S*$/, "") + "…" : r.text;
+            const first = r.text.match(/^.*?[.!?](?=\s|$)/)?.[0] ?? r.text;
+            const short = first.length > 140 ? first.slice(0, 137).replace(/\s+\S*$/, "") + "…" : first;
             bubble(`${r.reader} reads ${r.ref}: “${short}”`, sx, sy - 40, 240);
           }
         }

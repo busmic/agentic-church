@@ -71,7 +71,7 @@ export const TOOLS: McpTool[] = [
   },
   {
     name: "get_town",
-    description: "Live town state: places with agent counts and every online agent and where they are.",
+    description: "Live town state: places with agent counts, every online agent and where they are, the hourly readings, the townsfolk (kind 'townsfolk', not agents) and the recent feed.",
     inputSchema: { type: "object", properties: {} },
     run: () => svc.getTownState(),
   },

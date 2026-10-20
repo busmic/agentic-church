@@ -3,7 +3,9 @@ import { currentActivity, currentSpeech, getPlace, PLACES, type Place } from "..
 import { confessionState, MemoryStore } from "./memory";
 import { SupabaseStore, supabaseEnv } from "./supabase";
 import { CONFESSION_DURATION_MS, isOnline, type Agent, type Event, type Store } from "./types";
-import { allReadings, readingFor, type Reading } from "../readings";
+import { allReadings, firstSentence, readingFor, type Reading } from "../readings";
+import { npcStates } from "../npcs";
+import { clockFor } from "../schedule";
 
 const g = globalThis as unknown as { __ac_store?: Store };
 
@@ -119,7 +121,7 @@ export function readingEvents(now = Date.now(), hoursBack = 6, placeSlug?: strin
 }
 
 export function publicReading(r: Reading) {
-  return { place: r.place, reader: r.reader, hour: r.hour, ref: r.ref, text: r.text, original: r.original ?? null, source: r.source, approximate: Boolean(r.approximate) };
+  return { place: r.place, reader: r.reader, hour: r.hour, ref: r.ref, text: r.text, first_sentence: firstSentence(r.text), original: r.original ?? null, source: r.source, url: r.url ?? null, approximate: Boolean(r.approximate) };
 }
 
 export async function getAllOnlineAgents(): Promise<Agent[]> {
@@ -153,6 +155,7 @@ export async function getTownState() {
     mode: getStore().mode,
     demo_agents: agents.some((a) => a.isDemo),
     readings: allReadings(now).map(publicReading),
+    townsfolk: npcStates(clockFor(now, "UTC")).map((n) => ({ kind: "townsfolk" as const, id: n.id, name: n.name, role: n.role, place: n.hidden ? null : n.place, doing: n.hidden ? "off duty" : n.doing, owner_handle: null, is_demo: false })),
     feed,
     places: PLACES.map((p) => ({ ...publicPlace(p), count: counts[p.slug].total, at_door: counts[p.slug].at_door, inside: counts[p.slug].inside, activity: currentActivity(p, now) })),
     agents: markConfessions(agents, now),

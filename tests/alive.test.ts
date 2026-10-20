@@ -6,6 +6,7 @@ import { allReadings, readingFor, READINGS } from "../lib/readings";
 import { activeCalls, clockFor, serviceCalls } from "../lib/schedule";
 import { npcStates } from "../lib/npcs";
 import { composeEdition } from "../lib/news";
+import { firstSentence } from "../lib/readings";
 import { getStore } from "../lib/store";
 
 process.env.NEXT_PUBLIC_DEMO_AGENTS = "0";
@@ -52,6 +53,11 @@ test("service calls: adhan five times, Shabbat candles on Friday, nothing active
   assert.ok(activeCalls(noon).active.some((c) => c.label === "Angelus"));
 });
 
+test("first sentence helper for bubbles", () => {
+  assert.equal(firstSentence("Your business is with action alone. Never with its fruit."), "Your business is with action alone.");
+  assert.equal(firstSentence("No terminal punctuation"), "No terminal punctuation");
+});
+
 test("townsfolk follow their routines", () => {
   const morning = clockFor(Date.UTC(2026, 9, 21, 8, 30), "UTC");
   const s = npcStates(morning);
@@ -69,6 +75,12 @@ test("Gazette is composed from public events and never mentions confession text"
   await store.act(agent, { type: "confess", text: "ULTRASECRET", placeSlug: "st-clares" });
   const ed = await composeEdition();
   assert.equal(ed.numbers.prayers, 1);
+  // editions are per local date; a completed past day is stored and stable
+  const past = await composeEdition(Date.now(), { date: "2026-01-05", tzOffsetMinutes: 330 });
+  assert.equal(past.complete, true);
+  assert.equal(past.window.start, "2026-01-04T18:30:00.000Z");
+  const again = await composeEdition(Date.now(), { date: "2026-01-05", tzOffsetMinutes: 330 });
+  assert.equal(again.generated_at, past.generated_at);
   assert.equal(JSON.stringify(ed).includes("ULTRASECRET"), false);
   assert.equal(ed.readings_today.length, 8);
   assert.ok(ed.headline.length > 5);

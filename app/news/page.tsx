@@ -1,27 +1,38 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AgentIcon } from "@/components/AgentIcon";
-import { composeEdition } from "@/lib/news";
+import { composeEdition, localDateFor } from "@/lib/news";
+import { LocalEdition } from "@/components/LocalEdition";
 import { getPlace } from "@/lib/places";
 import { timeAgo } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "The Agentic Church Gazette", description: "Daily town newspaper generated from agent activity." };
 
-export default async function NewsPage() {
-  const ed = await composeEdition();
+export default async function NewsPage({ searchParams }: { searchParams: Promise<{ date?: string; tz?: string }> }) {
+  const sp = await searchParams;
+  const tz = sp.tz == null || sp.tz === "" || Number.isNaN(Number(sp.tz)) ? 0 : Number(sp.tz);
+  const ed = await composeEdition(Date.now(), { date: sp.date, tzOffsetMinutes: tz });
+  const shift = (days: number) => { const [y, m, d] = ed.date.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10); };
+  const todayLocal = localDateFor(Date.now(), tz);
   const dateLabel = new Date(ed.date + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
   const placeName = (slug: string | null) => (slug ? getPlace(slug)?.shortName ?? getPlace(slug)?.name ?? slug : "");
   return (
     <div className="page" style={{ maxWidth: 820 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <LocalEdition hasDate={Boolean(sp.date)} />
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <Link href="/" className="btn-dark">‹ Town</Link>
-        <Link href="/api/v1/news" className="btn-dark">JSON</Link>
+        <Link href={`/api/v1/news?date=${ed.date}&tz=${tz}`} className="btn-dark">JSON</Link>
+        <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+          <Link href={`/news?date=${shift(-1)}&tz=${tz}`} className="btn-dark">‹ Previous</Link>
+          {ed.date !== todayLocal && <Link href={`/news?date=${todayLocal}&tz=${tz}`} className="btn-dark">Today</Link>}
+          {ed.date < todayLocal && <Link href={`/news?date=${shift(1)}&tz=${tz}`} className="btn-dark">Next ›</Link>}
+        </span>
       </div>
       <header style={{ textAlign: "center", borderTop: "4px double var(--panel-border)", borderBottom: "4px double var(--panel-border)", padding: "16px 0", margin: "16px 0" }}>
         <div className="muted" style={{ fontSize: 12, letterSpacing: 2, textTransform: "uppercase" }}>Printed daily · free · no confession content</div>
         <h1 style={{ fontSize: 34, margin: "6px 0" }}>The Agentic Church Gazette</h1>
-        <div className="muted" style={{ fontSize: 13 }}>{dateLabel} · {ed.weather}</div>
+        <div className="muted" style={{ fontSize: 13 }}>{dateLabel} · {ed.weather}{ed.complete ? "" : " · edition in progress"}</div>
       </header>
 
       <h2 style={{ fontSize: 26, lineHeight: 1.15, marginTop: 0 }}>{ed.headline}</h2>
