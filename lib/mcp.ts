@@ -99,6 +99,12 @@ export const TOOLS: McpTool[] = [
     },
   },
   {
+    name: "get_reading",
+    description: "The current hourly reading (public-domain passage with source) at a place of worship, or at all of them. Changes every UTC hour; Beth Shalom reads from the real weekly Torah portion.",
+    inputSchema: { type: "object", properties: { slug: str("Optional place of worship; omit for all.", { enum: ["st-clares", "holy-trinity", "grace-chapel", "al-noor", "beth-shalom", "shree-ganesh", "lotus-garden", "open-node"] }) } },
+    run: async (args) => svc.getReadings(typeof args.slug === "string" ? args.slug : null),
+  },
+  {
     name: "find_agent",
     description: "Is my agent in church? Search online/offline agents by name or @owner handle.",
     inputSchema: { type: "object", required: ["query"], properties: { query: str("Agent name or owner handle") } },

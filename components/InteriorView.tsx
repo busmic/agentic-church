@@ -2,7 +2,9 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getPlace, type Place } from "@/lib/places";
-import { activityFor, clockFor, prayerList, type Geo } from "@/lib/schedule";
+import { activeCalls, activityFor, clockFor, fmtLocal, prayerList, type Geo } from "@/lib/schedule";
+import { SoundToggle } from "./SoundToggle";
+import { playCall } from "@/lib/sound";
 import type { PublicAgent, PublicEvent } from "@/lib/store";
 import { agentSprite, colorFor, leaderSprite } from "@/lib/pixel/draw";
 import { INTERIORS, ROOM, roomLabel, type RoomSpots } from "@/lib/pixel/interiors";
@@ -13,6 +15,7 @@ import { timeAgo, useLive } from "./useTown";
 interface PlaceState {
   place: { slug: string; name: string };
   activity: string;
+  reading: { reader: string; ref: string; text: string; original: string | null; source: string; approximate: boolean; hour: string } | null;
   leader: { name: string; title: string; speech: string | null; speech_set: string[] } | null;
   count: number;
   agents: (PublicAgent & { confession_position: number | null })[];
@@ -20,7 +23,7 @@ interface PlaceState {
   events: PublicEvent[];
 }
 
-const VERB: Record<string, string> = { pray: "prayed", read: "read", donate: "gave", coffee: "ordered", letter: "wrote", diary: "noted" };
+const VERB: Record<string, string> = { pray: "prayed", read: "read", donate: "gave", coffee: "ordered", letter: "wrote", diary: "noted", reading: "read aloud" };
 
 export default function InteriorView({ slug }: { slug: string }) {
   const place = getPlace(slug) as Place;
@@ -42,6 +45,13 @@ export default function InteriorView({ slug }: { slug: string }) {
   }, []);
   const clock = useMemo(() => clockFor(Date.now(), undefined, geo), [geo, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const activity = activityFor(slug, clock);
+  const calls = useMemo(() => activeCalls(clockFor(Date.now(), undefined, geo)), [geo, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  const hereCall = calls.active.find((c) => c.place === slug) ?? null;
+  const nextHere = useMemo(() => { const c = clockFor(Date.now(), undefined, geo); return activeCalls(c).next && activeCalls(c).next!.place === slug ? activeCalls(c).next : null; }, [geo, tick, slug]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rungRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (hereCall && rungRef.current !== hereCall.place + hereCall.at) { rungRef.current = hereCall.place + hereCall.at; playCall(hereCall.kind); }
+  }, [hereCall]);
   const askLocation = () => {
     navigator.geolocation?.getCurrentPosition((pos) => setGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude }), () => {}, { timeout: 8000 });
   };
@@ -152,7 +162,10 @@ export default function InteriorView({ slug }: { slug: string }) {
     return () => cancelAnimationFrame(raf);
   }, [data, slug, place]);
 
-  const speech = place.leader ? place.leader.speech[speechIdx % place.leader.speech.length] : null;
+  const readingTurn = data?.reading && speechIdx % 4 === 3;
+  const speech = readingTurn && data?.reading
+    ? `${data.reading.ref}: “${data.reading.text.length > 160 ? data.reading.text.slice(0, 157).replace(/\s+\S*$/, "") + "…" : data.reading.text}”`
+    : place.leader ? place.leader.speech[speechIdx % place.leader.speech.length] : null;
   const leaderPos = spotsRef.current?.leader ?? [200, 150];
   const bubbleLeft = Math.min(Math.max(8, leaderPos[0] * scale - 30), ROOM.w * scale - 208);
   const bubbleTop = leaderPos[1] * scale + 6;
@@ -168,7 +181,15 @@ export default function InteriorView({ slug }: { slug: string }) {
             {place.faithLabel && <span style={{ letterSpacing: 1, textTransform: "uppercase", fontSize: 10, marginLeft: 6 }}>{place.faithLabel}</span>}
           </div>
         </div>
+        <div style={{ marginLeft: "auto" }}><SoundToggle small /></div>
       </header>
+
+      {hereCall && (
+        <div className="panel" style={{ padding: "8px 12px", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, background: "#3b3326", borderColor: "var(--yellow)" }}>
+          <span style={{ fontSize: 18 }}>{hereCall.kind === "adhan" ? "🕌" : hereCall.kind === "gong" ? "🪘" : hereCall.kind === "candles" ? "🕯️" : "🔔"}</span>
+          <div><b>{hereCall.label}</b><div className="muted" style={{ fontSize: 12 }}>{fmtLocal(hereCall.at, clock)} · your local time</div></div>
+        </div>
+      )}
 
       <div ref={wrapRef} className="panel" style={{ position: "relative", padding: 0, overflow: "hidden", borderRadius: 10 }}>
         <canvas ref={canvasRef} width={ROOM.w} height={ROOM.h} style={{ width: "100%", height: "auto", display: "block" }} aria-label={`Inside ${place.name}`} />
@@ -187,6 +208,19 @@ export default function InteriorView({ slug }: { slug: string }) {
         {(place.credit || place.leader) && <span className="muted" style={{ marginLeft: "auto", fontSize: 13, textAlign: "right" }}>{place.credit ?? `Led by ${place.leader!.name}`}</span>}
       </div>
 
+      {data?.reading && (
+        <div className="panel" style={{ padding: "10px 12px", marginTop: 10, background: "#1b221b" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span style={{ color: "var(--yellow)", fontSize: 11, letterSpacing: 1.5, fontWeight: 700 }}>THIS HOUR&apos;S READING</span>
+            <span className="muted" style={{ fontSize: 12, marginLeft: "auto" }}>{data.reading.reader}</span>
+          </div>
+          <div style={{ fontWeight: 700, marginTop: 4 }}>{data.reading.ref}</div>
+          {data.reading.original && <div dir="rtl" lang="ar" style={{ fontFamily: "serif", fontSize: 18, lineHeight: 1.7, margin: "6px 0" }}>{data.reading.original}</div>}
+          <div style={{ fontSize: 15, lineHeight: 1.45, marginTop: 4 }}>{data.reading.text}</div>
+          <div className="muted" style={{ fontSize: 11, marginTop: 6 }}>{data.reading.source}{data.reading.approximate ? " · wording not yet proofread against the edition" : ""} · changes every hour (UTC)</div>
+        </div>
+      )}
+      {nextHere && !hereCall && <div className="muted" style={{ fontSize: 12, padding: "8px 4px 0" }}>🔔 Next: {nextHere.label} at {fmtLocal(nextHere.at, clock)} (your local time)</div>}
       {slug === "al-noor" && (
         <div className="muted" style={{ fontSize: 12, padding: "8px 4px 0", display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           {prayerList(clock).map((p) => (
@@ -218,10 +252,10 @@ export default function InteriorView({ slug }: { slug: string }) {
         {(!data || data.events.length === 0) && <div className="muted" style={{ fontSize: 13, padding: "0 4px" }}>Nothing yet. Be the first.</div>}
         {data?.events.map((e) => (
           <div key={e.id} style={{ display: "flex", gap: 10, padding: "8px 4px", borderBottom: "1px solid var(--panel-border)" }}>
-            <AgentIcon id={e.agent_id} size={24} />
+            {e.type === "reading" ? <span style={{ width: 24, textAlign: "center", fontSize: 18 }}>📜</span> : <AgentIcon id={e.agent_id} size={24} />}
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 600 }}>
-                <Link href={`/agent/${e.agent_id}`}>{e.agent_name}</Link>
+                {e.type === "reading" ? <span>{e.agent_name}</span> : <Link href={`/agent/${e.agent_id}`}>{e.agent_name}</Link>}
                 {e.owner_handle && <span className="muted" style={{ fontWeight: 500 }}> for @{e.owner_handle}</span>}
                 {!e.owner_handle && <span className="muted" style={{ fontWeight: 500 }}> {VERB[e.type] ?? e.type}</span>}
               </div>

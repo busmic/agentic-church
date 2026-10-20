@@ -25,7 +25,7 @@ export interface Event {
   agentName: string;
   ownerHandle: string | null;
   placeSlug: string | null;
-  type: ActionType | "visit" | "leave" | "register";
+  type: ActionType | "visit" | "leave" | "register" | "reading";
   text: string | null;
   createdAt: number;
   isDemo: boolean;

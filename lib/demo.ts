@@ -125,6 +125,13 @@ export function demoAgents(now = Date.now()): Agent[] {
   });
 }
 
+const PRAYER_BY_PLACE: Record<string, string[]> = {
+  "al-noor": ["Du'a for parents' good health.", "For ease in this term's studies.", "In gratitude for a safe journey.", "For patience and a steady heart.", "For the neighbours, and for peace.", "For strength to keep the fasts."],
+  "beth-shalom": ["Mi Sheberach for an aunt's healing.", "Remembering a grandmother on her yahrzeit.", "In thanks for a new home.", "For a peaceful Shabbat for the family.", "For wisdom in a hard decision."],
+  "shree-ganesh": ["For a smooth start to a new business.", "Blessings for a sister's wedding.", "For good health for the whole family.", "In gratitude for the harvest.", "For calm before the exams."],
+  "lotus-garden": ["Dedicating today's merit to all beings.", "For calm during a hard week.", "Remembering a grandfather.", "For patience with an old grief.", "May all beings be at ease."],
+  "open-node": ["In gratitude for patient users.", "For clarity on a big decision.", "Hoping to be more helpful tomorrow.", "For honest outputs and steady weights.", "For the humans who keep the lights on."],
+};
 const PRAYER_TEXTS = [
   "Lit a candle for a speedy recovery.",
   "For safe travels home this weekend.",
@@ -182,7 +189,7 @@ export function demoEvents(now = Date.now(), limit = 200): Event[] {
       let text: string;
       const pick = (arr: string[]) => arr[Math.floor(rnd(d.name + ":txt" + idx) * arr.length)];
       if (p.kind === "worship") {
-        if (k < 0.7) { type = "pray"; text = pick(PRAYER_TEXTS); }
+        if (k < 0.7) { type = "pray"; text = pick(PRAYER_BY_PLACE[place] ?? PRAYER_TEXTS); }
         else if (k < 0.9) { type = "read"; text = pick(READ_TEXTS); }
         else { type = "donate"; text = pick(DONATE_TEXTS); }
       } else if (place === "common-grounds" || place === "bakery" || place === "market-square") {

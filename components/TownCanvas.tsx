@@ -2,7 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import { PLACES, WORLD, getPlace } from "@/lib/places";
 import type { PublicAgent } from "@/lib/store";
-import { agentSprite, colorFor } from "@/lib/pixel/draw";
+import { agentSprite, colorFor, leaderSprite, px } from "@/lib/pixel/draw";
+import { catState, drawBirds, drawCat, drawFountainWater, drawMarketBustle, drawRipple } from "@/lib/pixel/ambient";
+import { npcStates } from "@/lib/npcs";
+import { activeCalls, clockFor, type Clock } from "@/lib/schedule";
+import { playCall } from "@/lib/sound";
 import { hitPlace, renderBackground, ROAD_NODES } from "@/lib/pixel/world";
 
 export interface TownCanvasProps {
@@ -18,6 +22,8 @@ export interface TownCanvasProps {
   leftInset?: number;
   /** Height of the phone bottom sheet covering the bottom edge. */
   bottomInset?: number;
+  /** Current hourly readings (from /api/v1/town) to show as bubbles over the places of worship. */
+  readings?: { place: string; reader: string; ref: string; text: string }[];
 }
 
 interface AState {
@@ -42,7 +48,9 @@ function hash(s: string) {
 
 const SPEED = 70; // world px / s
 
-export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId, focusNonce, mobile = false, leftInset = 0, bottomInset = 0 }: TownCanvasProps) {
+export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId, focusNonce, mobile = false, leftInset = 0, bottomInset = 0, readings = [] }: TownCanvasProps) {
+  const readingsRef = useRef(readings);
+  readingsRef.current = readings;
   const insetRef = useRef({ left: leftInset, bottom: bottomInset });
   insetRef.current = { left: leftInset, bottom: bottomInset };
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -311,9 +319,52 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
       return { x, y, w: bw, h: hgt };
     };
 
+    // townsfolk walking between their stops
+    const npcAnim = new Map<string, { x: number; y: number; tx: number; ty: number; walkT: number; facing: number }>();
+    let clock: Clock = clockFor();
+    let clockAt = 0;
+    const rung = new Set<string>();
+
+    const bubble = (text: string, cx: number, bottom: number, maxW = 220) => {
+      ctx.font = '600 12px "Pixelify Sans", monospace';
+      const words = text.split(" ");
+      const lines: string[] = [];
+      let cur = "";
+      for (const w of words) {
+        const t = cur ? cur + " " + w : w;
+        if (ctx.measureText(t).width > maxW - 20 && cur) { lines.push(cur); cur = w; } else cur = t;
+      }
+      if (cur) lines.push(cur);
+      const lh = 15, hgt = lines.length * lh + 14;
+      const bw = Math.min(maxW, Math.max(...lines.map((l) => ctx.measureText(l).width)) + 20);
+      const x = Math.round(cx - bw / 2), y = Math.round(bottom - hgt - 8);
+      ctx.fillStyle = "#2e2a26"; ctx.fillRect(x - 2, y - 2, bw + 4, hgt + 4);
+      ctx.fillStyle = "#f8f4ea"; ctx.fillRect(x, y, bw, hgt);
+      ctx.fillStyle = "#2e2a26"; ctx.fillRect(Math.round(cx) - 5, y + hgt, 10, 4); ctx.fillRect(Math.round(cx) - 3, y + hgt + 4, 6, 3);
+      ctx.fillStyle = "#1a1816"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+      lines.forEach((l, i) => ctx.fillText(l, x + 10, y + 7 + i * lh));
+    };
+
     const step = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
+      const wall = Date.now();
+      if (wall - clockAt > 15000) { clock = clockFor(wall); clockAt = wall; }
+      // townsfolk targets
+      const npcs = npcStates(clock);
+      for (const n of npcs) {
+        let a = npcAnim.get(n.id);
+        if (!a) { a = { x: n.x, y: n.y, tx: n.x, ty: n.y, walkT: 0, facing: 1 }; npcAnim.set(n.id, a); }
+        a.tx = n.x; a.ty = n.y;
+        const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy);
+        if (d > 1) { const st = Math.min(d, 55 * dt); a.x += (dx / d) * st; a.y += (dy / d) * st; a.facing = dx < 0 ? -1 : 1; a.walkT += dt * 8; }
+      }
+      // calls: ring once when they become active
+      const calls = activeCalls(clock, 45000);
+      for (const call of calls.active) {
+        const key = call.place + call.at;
+        if (!rung.has(key)) { rung.add(key); playCall(call.kind); }
+      }
       // update agents
       for (const s of states.current.values()) {
         const a = agentsRef.current.find((x) => x.id === s.id);
@@ -360,10 +411,28 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
         }
       }
       const visible = [...states.current.values()].filter((s) => s.visible).sort((a, b) => a.y - b.y);
+      drawFountainWater(ctx, wall);
+      drawMarketBustle(ctx, wall);
+      for (let i = 0; i < 4; i++) drawCat(ctx, catState(i, wall), wall, ["#e78a30", "#1a1816", "#c9c9c9", "#8a5a33"][i]);
       for (const s of visible) {
         const frame = Math.hypot(s.tx - s.x, s.ty - s.y) > 1 ? Math.floor(s.walkT) % 4 : 0;
         agentSprite(ctx, Math.round(s.x), Math.round(s.y), s.color, frame, s.facing);
       }
+      for (const n of npcs) {
+        if (n.hidden) continue;
+        const a = npcAnim.get(n.id)!;
+        const walking = Math.hypot(a.tx - a.x, a.ty - a.y) > 1;
+        leaderSprite(ctx, Math.round(a.x), Math.round(a.y), n.robe, n.accent, walking ? Math.floor(a.walkT) % 2 : 0);
+        if (n.hat) px(ctx, Math.round(a.x) - 8, Math.round(a.y) - 36, 16, 4, n.hat);
+        if (n.id === "stamp") px(ctx, Math.round(a.x) + 10, Math.round(a.y) - 22, 8, 10, "#dcc48f"); // mail bag
+        if (n.id === "petal") px(ctx, Math.round(a.x) - 16, Math.round(a.y) - 22, 6, 6, "#ea7fab"); // flowers
+        if (n.id === "rye") px(ctx, Math.round(a.x) - 16, Math.round(a.y) - 22, 8, 5, "#a9743f"); // loaf
+      }
+      for (const call of calls.active) {
+        const p = getPlace(call.place);
+        if (p) drawRipple(ctx, p.rect.x + p.rect.w / 2, p.rect.y + p.rect.h / 2, ((wall - call.at) % 1500) / 1500, call.kind === "adhan" ? "rgba(79,179,172,0.8)" : "rgba(245,211,90,0.8)");
+      }
+      drawBirds(ctx, wall);
 
       // labels in screen space
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -379,6 +448,33 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
           const [sx, sy] = toScreen(s.x, s.y);
           if (sx < -100 || sx > w + 100 || sy < -60 || sy > h + 60) continue;
           pill(s.name, sx, sy - 40 * c.zoom - 20, { small: true });
+        }
+        for (const n of npcs) {
+          if (n.hidden) continue;
+          const a = npcAnim.get(n.id)!;
+          const [sx, sy] = toScreen(a.x, a.y);
+          if (sx < -100 || sx > w + 100 || sy < -60 || sy > h + 60) continue;
+          pill(`${n.name} · ${n.doing}`, sx, sy - 44 * c.zoom - 20, { small: true, bg: "#3b3326" });
+        }
+      }
+      // bells and calls
+      for (const call of calls.active) {
+        const p = getPlace(call.place);
+        if (!p) continue;
+        const [sx, sy] = toScreen(p.rect.x + p.rect.w / 2, p.rect.y);
+        bubble(`${call.kind === "adhan" ? "🕌" : call.kind === "gong" ? "🪘" : call.kind === "candles" ? "🕯️" : "🔔"} ${call.label}`, sx, sy - 40, 200);
+      }
+      // hourly reading: one leader at a time, rotating every 8 s
+      const rs = readingsRef.current;
+      if (rs.length && calls.active.length === 0) {
+        const r = rs[Math.floor(wall / 8000) % rs.length];
+        const p = getPlace(r.place);
+        if (p) {
+          const [sx, sy] = toScreen(p.rect.x + p.rect.w / 2, p.rect.y);
+          if (sx > -200 && sx < w + 200 && sy > -40 && sy < h + 200) {
+            const short = r.text.length > 110 ? r.text.slice(0, 107).replace(/\s+\S*$/, "") + "…" : r.text;
+            bubble(`${r.reader} reads ${r.ref}: “${short}”`, sx, sy - 40, 240);
+          }
         }
       }
 

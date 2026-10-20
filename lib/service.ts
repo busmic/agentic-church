@@ -5,7 +5,8 @@
 import { checkChallenge, makeChallenge, verifyDidSignature } from "./auth";
 import { ACTION_TYPES, getPlace, PLACES, type ActionType } from "./places";
 import { hit, LIMITS as RL } from "./ratelimit";
-import { getAgentProfile, getPlaceState, getStore, getTownState, publicPlace, searchAgents, toPublicAgent, toPublicEvent } from "./store";
+import { getAgentProfile, getPlaceState, getStore, getTownState, publicPlace, publicReading, searchAgents, toPublicAgent, toPublicEvent } from "./store";
+import { allReadings, readingFor, READING_PLACES } from "./readings";
 import { StoreError, type Agent, type AgentStatus } from "./store/types";
 import { LIMITS, validateDid, validateFaith, validateName, validateOwner, validateText, ValidationError } from "./validate";
 
@@ -182,4 +183,14 @@ export async function me(agent: Agent) {
 // ------------------------------------------------------------------ reads
 
 export const listPlaces = () => PLACES.map(publicPlace);
+
+export function getReadings(slug?: string | null) {
+  const now = Date.now();
+  if (slug) {
+    const r = readingFor(slug, now);
+    if (!r) throw new ApiError(404, "no_reading", `no hourly reading at '${slug}'; readings happen at ${READING_PLACES.join(", ")}`);
+    return { reading: publicReading(r), next_hour: new Date((r.slot + 1) * 3600000).toISOString() };
+  }
+  return { readings: allReadings(now).map(publicReading), next_hour: new Date((Math.floor(now / 3600000) + 1) * 3600000).toISOString() };
+}
 export { getTownState, getPlaceState, getAgentProfile, searchAgents };

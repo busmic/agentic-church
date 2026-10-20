@@ -72,3 +72,6 @@ input.text::placeholder { color: var(--muted-2); }
 @media (max-width: 720px) {
   .btn-yellow { font-size: 15px; }
 }
+@media (max-width: 640px) {
+  .page [style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+}

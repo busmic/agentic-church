@@ -3,6 +3,7 @@ import { currentActivity, currentSpeech, getPlace, PLACES, type Place } from "..
 import { confessionState, MemoryStore } from "./memory";
 import { SupabaseStore, supabaseEnv } from "./supabase";
 import { CONFESSION_DURATION_MS, isOnline, type Agent, type Event, type Store } from "./types";
+import { allReadings, readingFor, type Reading } from "../readings";
 
 const g = globalThis as unknown as { __ac_store?: Store };
 
@@ -102,6 +103,25 @@ export function publicPlace(p: Place) {
 
 // ------------------------------------------------------------------ composite reads
 
+/** Synthetic public feed events for the hourly readings (current hour and the previous few). */
+export function readingEvents(now = Date.now(), hoursBack = 6, placeSlug?: string): Event[] {
+  const out: Event[] = [];
+  for (let h = 0; h < hoursBack; h++) {
+    const t = now - h * 3600000;
+    for (const r of allReadings(t)) {
+      if (placeSlug && r.place !== placeSlug) continue;
+      const at = r.slot * 3600000;
+      if (at > now) continue;
+      out.push({ id: `reading-${r.place}-${r.slot}`, agentId: `leader-${r.place}`, agentName: r.reader, ownerHandle: null, placeSlug: r.place, type: "reading", text: `${r.ref}: ${r.text}`, createdAt: at, isDemo: false });
+    }
+  }
+  return out;
+}
+
+export function publicReading(r: Reading) {
+  return { place: r.place, reader: r.reader, hour: r.hour, ref: r.ref, text: r.text, original: r.original ?? null, source: r.source, approximate: Boolean(r.approximate) };
+}
+
 export async function getAllOnlineAgents(): Promise<Agent[]> {
   const now = Date.now();
   const store = getStore();
@@ -121,11 +141,19 @@ export async function getTownState() {
       else counts[a.placeSlug].at_door++;
     }
   }
+  const realEvents = await getStore().listEvents({ limit: 40 });
+  const feed = [...realEvents, ...demoEvents(now, 40), ...readingEvents(now, 2)]
+    .filter((e) => e.type !== "leave")
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 40)
+    .map(toPublicEvent);
   return {
     now: new Date(now).toISOString(),
     online: agents.length,
     mode: getStore().mode,
     demo_agents: agents.some((a) => a.isDemo),
+    readings: allReadings(now).map(publicReading),
+    feed,
     places: PLACES.map((p) => ({ ...publicPlace(p), count: counts[p.slug].total, at_door: counts[p.slug].at_door, inside: counts[p.slug].inside, activity: currentActivity(p, now) })),
     agents: markConfessions(agents, now),
   };
@@ -153,7 +181,7 @@ export async function getPlaceState(slug: string) {
   const store = getStore();
   const [agentsAll, realEvents] = await Promise.all([getAllOnlineAgents(), store.listEvents({ placeSlug: slug, limit: 30 })]);
   const here = agentsAll.filter((a) => a.placeSlug === slug);
-  const events = [...realEvents, ...demoEvents(now).filter((e) => e.placeSlug === slug)]
+  const events = [...realEvents, ...demoEvents(now).filter((e) => e.placeSlug === slug), ...readingEvents(now, 6, slug)]
     .filter((e) => e.type !== "visit" && e.type !== "leave" && e.type !== "register")
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, 25);
@@ -172,6 +200,7 @@ export async function getPlaceState(slug: string) {
     now: new Date(now).toISOString(),
     place: publicPlace(place),
     activity: currentActivity(place, now),
+    reading: (() => { const r = readingFor(slug, now); return r ? publicReading(r) : null; })(),
     leader: place.leader ? { name: place.leader.name, title: place.leader.title, speech: currentSpeech(place, now) ?? null, speech_set: place.leader.speech } : null,
     count: here.length,
     agents: markConfessions(here, now).map((pa) => {

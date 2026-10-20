@@ -275,3 +275,65 @@ export function prayerList(c: Clock): { name: string; at: string; ms: number | n
     { name: "Isha", at: fmtLocal(p.isha, c), ms: p.isha },
   ];
 }
+
+// ------------------------------------------------------------------ service calls (bells, adhan, gongs)
+
+export type CallKind = "bell" | "adhan" | "temple-bell" | "gong" | "chime" | "candles";
+export interface ServiceCall { place: string; kind: CallKind; label: string; at: number }
+
+const atLocal = (c: Clock, hhmm: string) => {
+  const day = localDayStart(c.now, c.offsetMinutes) - c.offsetMinutes * 60000; // local midnight as UTC ms
+  return day + (Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3))) * 60000;
+};
+
+/** Today's calls to worship for the viewer's zone and location, in time order. */
+export function serviceCalls(c: Clock): ServiceCall[] {
+  const { dow } = localHM(c);
+  const day = localDayStart(c.now, c.offsetMinutes);
+  const sunrise = sunTime(day, c.geo, -0.833, true);
+  const sunset = sunTime(day, c.geo, -0.833, false);
+  const out: ServiceCall[] = [];
+  const add = (place: string, kind: CallKind, label: string, at: number | null) => { if (at != null) out.push({ place, kind, label, at }); };
+  // Al-Noor: adhan at the five prayers (and Jumu'ah)
+  const p = prayerTimes(c);
+  add("al-noor", "adhan", "Adhan for Fajr", p.fajr);
+  add("al-noor", "adhan", dow === 5 ? "Adhan for Jumu'ah" : "Adhan for Dhuhr", p.dhuhr);
+  add("al-noor", "adhan", "Adhan for Asr", p.asr);
+  add("al-noor", "adhan", "Adhan for Maghrib", p.maghrib);
+  add("al-noor", "adhan", "Adhan for Isha", p.isha);
+  // St. Clare's bells
+  if (dow === 0) { add("st-clares", "bell", "Bells for Mass", atLocal(c, "09:00")); add("st-clares", "bell", "Bells for Mass", atLocal(c, "11:00")); }
+  if (dow === 6) add("st-clares", "bell", "Bells for Vigil Mass", atLocal(c, "17:00"));
+  if (dow >= 1 && dow <= 5) add("st-clares", "bell", "Bells for Mass", atLocal(c, "08:00"));
+  add("st-clares", "bell", "Angelus", atLocal(c, "12:00"));
+  add("st-clares", "bell", "Angelus", atLocal(c, "18:00"));
+  // Holy Trinity
+  if (dow === 0) add("holy-trinity", "bell", "Bells for Divine Liturgy", atLocal(c, "09:00"));
+  if (dow === 6) add("holy-trinity", "bell", "Bells for Vespers", atLocal(c, "18:00"));
+  if (dow >= 1 && dow <= 5) add("holy-trinity", "bell", "Bells for Matins", atLocal(c, "08:00"));
+  // Grace Chapel
+  if (dow === 0) { add("grace-chapel", "bell", "Bell for Sunday worship", atLocal(c, "10:00")); add("grace-chapel", "bell", "Bell for evening worship", atLocal(c, "18:00")); }
+  if (dow === 3) add("grace-chapel", "bell", "Bell for Bible study", atLocal(c, "19:00"));
+  // Beth Shalom
+  if (dow === 5 && sunset != null) add("beth-shalom", "candles", "Shabbat begins", sunset - 18 * 60000);
+  if (dow === 6) add("beth-shalom", "chime", "Shabbat service", atLocal(c, "09:00"));
+  if (dow >= 0 && dow <= 5 && !(dow === 5)) add("beth-shalom", "chime", "Shacharit", atLocal(c, "07:00"));
+  // Shree Ganesh: temple bell at aarti
+  add("shree-ganesh", "temple-bell", "Bell for morning aarti", sunrise);
+  add("shree-ganesh", "temple-bell", "Bell for evening aarti", sunset == null ? null : sunset - 15 * 60000);
+  // Lotus Garden: gong
+  add("lotus-garden", "gong", "Gong for morning chanting", atLocal(c, "06:00"));
+  add("lotus-garden", "gong", "Gong for sitting meditation", atLocal(c, "12:00"));
+  add("lotus-garden", "gong", "Gong for evening chanting", atLocal(c, "18:00"));
+  // Open Node: sync chime
+  add("open-node", "chime", "Morning sync", atLocal(c, "08:00"));
+  add("open-node", "chime", "Evening reflection", atLocal(c, "20:00"));
+  out.sort((a, b) => a.at - b.at);
+  return out;
+}
+
+/** Calls ringing right now (within `windowMs` after their time) and the next one coming. */
+export function activeCalls(c: Clock, windowMs = 45000): { active: ServiceCall[]; next: ServiceCall | null } {
+  const calls = serviceCalls(c);
+  return { active: calls.filter((x) => c.now >= x.at && c.now < x.at + windowMs), next: calls.find((x) => x.at > c.now) ?? null };
+}
