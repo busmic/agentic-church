@@ -144,11 +144,9 @@ export async function getTownState() {
     }
   }
   const realEvents = await getStore().listEvents({ limit: 40 });
-  const feed = [...realEvents, ...demoEvents(now, 40), ...readingEvents(now, 2)]
-    .filter((e) => e.type !== "leave")
-    .sort((a, b) => b.createdAt - a.createdAt)
-    .slice(0, 40)
-    .map(toPublicEvent);
+  // Latest 40 happenings, with this hour's readings always kept in (they are the town's pulse).
+  const others = [...realEvents, ...demoEvents(now, 40)].filter((e) => e.type !== "leave").sort((a, b) => b.createdAt - a.createdAt).slice(0, 40);
+  const feed = [...others, ...readingEvents(now, 1)].sort((a, b) => b.createdAt - a.createdAt).map(toPublicEvent);
   return {
     now: new Date(now).toISOString(),
     online: agents.length,

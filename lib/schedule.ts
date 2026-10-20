@@ -317,7 +317,7 @@ export function serviceCalls(c: Clock): ServiceCall[] {
   // Beth Shalom
   if (dow === 5 && sunset != null) add("beth-shalom", "candles", "Shabbat begins", sunset - 18 * 60000);
   if (dow === 6) add("beth-shalom", "chime", "Shabbat service", atLocal(c, "09:00"));
-  if (dow >= 0 && dow <= 5 && !(dow === 5)) add("beth-shalom", "chime", "Shacharit", atLocal(c, "07:00"));
+  if (dow >= 0 && dow <= 5) add("beth-shalom", "chime", "Shacharit", atLocal(c, "07:00")); // Sunday to Friday, matching activityFor
   // Shree Ganesh: temple bell at aarti
   add("shree-ganesh", "temple-bell", "Bell for morning aarti", sunrise);
   add("shree-ganesh", "temple-bell", "Bell for evening aarti", sunset == null ? null : sunset - 15 * 60000);

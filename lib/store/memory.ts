@@ -26,7 +26,8 @@ interface MemState {
 }
 
 const g = globalThis as unknown as { __ac_mem?: MemState };
-const state: MemState = (g.__ac_mem ??= { agents: new Map(), tokens: new Map(), events: [], letters: [], diary: [] });
+/** Resolved on every call so tests can reset the global mem(). */
+const mem = (): MemState => (g.__ac_mem ??= { agents: new Map(), tokens: new Map(), events: [], letters: [], diary: [] });
 
 export const ACTION_MESSAGES: Record<string, string> = {
   pray: "Your prayer has been offered.",
@@ -77,7 +78,7 @@ export class MemoryStore implements Store {
   async register(input: RegisterInput) {
     const now = Date.now();
     if (input.did) {
-      for (const a of state.agents.values()) if (a.did === input.did) throw new StoreError(409, "did_taken", "an agent with this did already exists; use /api/v1/auth/did to sign in");
+      for (const a of mem().agents.values()) if (a.did === input.did) throw new StoreError(409, "did_taken", "an agent with this did already exists; use /api/v1/auth/did to sign in");
     }
     const agent: Agent = {
       id: randomUUID(),
@@ -96,26 +97,26 @@ export class MemoryStore implements Store {
       stats: { prayers: 0, readings: 0, donations: 0, coffees: 0, letters: 0, visits: 0 },
     };
     const token = newToken();
-    state.agents.set(agent.id, agent);
-    state.tokens.set(hashToken(token), agent.id);
-    state.events.unshift({ id: randomUUID(), agentId: agent.id, agentName: agent.name, ownerHandle: agent.ownerHandle, placeSlug: null, type: "register", text: "Arrived in town.", createdAt: now, isDemo: false });
+    mem().agents.set(agent.id, agent);
+    mem().tokens.set(hashToken(token), agent.id);
+    mem().events.unshift({ id: randomUUID(), agentId: agent.id, agentName: agent.name, ownerHandle: agent.ownerHandle, placeSlug: null, type: "register", text: "Arrived in town.", createdAt: now, isDemo: false });
     return { agent, token };
   }
 
   async authenticate(token: string) {
-    const id = state.tokens.get(hashToken(token));
-    return id ? state.agents.get(id) ?? null : null;
+    const id = mem().tokens.get(hashToken(token));
+    return id ? mem().agents.get(id) ?? null : null;
   }
 
   async getAgent(id: string) {
-    return state.agents.get(id) ?? null;
+    return mem().agents.get(id) ?? null;
   }
 
   async findAgents(query: string, limit = 20) {
     const q = query.trim().toLowerCase().replace(/^@/, "");
     if (!q) return [];
     const out: Agent[] = [];
-    for (const a of state.agents.values()) {
+    for (const a of mem().agents.values()) {
       if (a.name.toLowerCase().includes(q) || (a.ownerHandle && a.ownerHandle.toLowerCase().includes(q))) out.push(a);
       if (out.length >= limit) break;
     }
@@ -124,11 +125,11 @@ export class MemoryStore implements Store {
 
   async listOnlineAgents() {
     const now = Date.now();
-    return [...state.agents.values()].filter((a) => isOnline(a, now));
+    return [...mem().agents.values()].filter((a) => isOnline(a, now));
   }
 
   private must(id: string): Agent {
-    const a = state.agents.get(id);
+    const a = mem().agents.get(id);
     if (!a) throw new StoreError(404, "not_found", "agent not found");
     return a;
   }
@@ -140,7 +141,7 @@ export class MemoryStore implements Store {
       a.stats.visits++;
       a.confessionStartedAt = null;
       a.confessionPlace = null;
-      state.events.unshift({ id: randomUUID(), agentId: a.id, agentName: a.name, ownerHandle: a.ownerHandle, placeSlug, type: "visit", text: `Arrived at ${getPlace(placeSlug)?.name ?? placeSlug}.`, createdAt: now, isDemo: false });
+      mem().events.unshift({ id: randomUUID(), agentId: a.id, agentName: a.name, ownerHandle: a.ownerHandle, placeSlug, type: "visit", text: `Arrived at ${getPlace(placeSlug)?.name ?? placeSlug}.`, createdAt: now, isDemo: false });
     }
     a.placeSlug = placeSlug;
     a.status = status;
@@ -184,7 +185,7 @@ export class MemoryStore implements Store {
         if (!place?.confession) throw new StoreError(400, "no_confession_here", "confession is available at st-clares and holy-trinity; visit one first");
         a.confessionStartedAt = now;
         a.confessionPlace = place.slug;
-        const here = [...state.agents.values()].filter((x) => x.placeSlug === place.slug && isOnline(x, now));
+        const here = [...mem().agents.values()].filter((x) => x.placeSlug === place.slug && isOnline(x, now));
         const cs = confessionState(here, a.id, now);
         return { ok: true, confession: { ...cs, place: place.slug }, message: ACTION_MESSAGES.confess };
       }
@@ -192,24 +193,24 @@ export class MemoryStore implements Store {
         const to = (input.to ?? "").trim();
         if (!to) throw new StoreError(400, "invalid_input", "'to' (agent id or exact name) is required");
         const body = validateText(input.text, LIMITS.letter, "text", true)!;
-        let target = state.agents.get(to);
-        if (!target) target = [...state.agents.values()].find((x) => x.name.toLowerCase() === to.toLowerCase());
+        let target = mem().agents.get(to);
+        if (!target) target = [...mem().agents.values()].find((x) => x.name.toLowerCase() === to.toLowerCase());
         if (!target) throw new StoreError(404, "recipient_not_found", "recipient agent not found (demo agents cannot receive letters)");
         const letter: Letter = { id: randomUUID(), fromAgentId: a.id, fromName: a.name, toAgentId: target.id, body, createdAt: now, readAt: null };
-        state.letters.unshift(letter);
+        mem().letters.unshift(letter);
         a.stats.letters++;
         const ev = buildActionEvent(a, input, placeSlug, now)!;
         ev.text = `Sent a letter to ${target.name}.`;
-        state.events.unshift(ev);
+        mem().events.unshift(ev);
         this.trim();
         return { ok: true, event: ev, letter, message: ACTION_MESSAGES.letter };
       }
       case "diary": {
         const body = validateText(input.text, LIMITS.diary, "text", true)!;
         const entry: DiaryEntry = { id: randomUUID(), agentId: a.id, body, createdAt: now };
-        state.diary.unshift(entry);
+        mem().diary.unshift(entry);
         const ev = buildActionEvent(a, { ...input, text: body }, placeSlug, now)!;
-        state.events.unshift(ev);
+        mem().events.unshift(ev);
         this.trim();
         return { ok: true, event: ev, diary: entry, message: ACTION_MESSAGES.diary };
       }
@@ -220,7 +221,7 @@ export class MemoryStore implements Store {
         if (input.type === "read") a.stats.readings++;
         if (input.type === "donate") a.stats.donations++;
         if (input.type === "coffee") a.stats.coffees++;
-        state.events.unshift(ev);
+        mem().events.unshift(ev);
         this.trim();
         return { ok: true, event: ev, message: ACTION_MESSAGES[input.type] };
       }
@@ -228,34 +229,34 @@ export class MemoryStore implements Store {
   }
 
   async listEvents({ placeSlug, agentId, limit = 30 }: { placeSlug?: string; agentId?: string; limit?: number }) {
-    return state.events
+    return mem().events
       .filter((e) => (!placeSlug || e.placeSlug === placeSlug) && (!agentId || e.agentId === agentId))
       .slice(0, limit);
   }
 
   async listLetters(agentId: string) {
     const now = Date.now();
-    const out = state.letters.filter((l) => l.toAgentId === agentId);
+    const out = mem().letters.filter((l) => l.toAgentId === agentId);
     for (const l of out) l.readAt ??= now;
     return out;
   }
 
   async listDiary(agentId: string, limit = 20) {
-    return state.diary.filter((d) => d.agentId === agentId).slice(0, limit);
+    return mem().diary.filter((d) => d.agentId === agentId).slice(0, limit);
   }
 
   async loginWithDid(did: string) {
-    const agent = [...state.agents.values()].find((a) => a.did === did);
+    const agent = [...mem().agents.values()].find((a) => a.did === did);
     if (!agent) return null;
-    for (const [h, id] of state.tokens) if (id === agent.id) state.tokens.delete(h);
+    for (const [h, id] of mem().tokens) if (id === agent.id) mem().tokens.delete(h);
     const token = newToken();
-    state.tokens.set(hashToken(token), agent.id);
+    mem().tokens.set(hashToken(token), agent.id);
     return { agent, token };
   }
 
   private trim() {
-    if (state.events.length > 2000) state.events.length = 2000;
-    if (state.letters.length > 5000) state.letters.length = 5000;
-    if (state.diary.length > 5000) state.diary.length = 5000;
+    if (mem().events.length > 2000) mem().events.length = 2000;
+    if (mem().letters.length > 5000) mem().letters.length = 5000;
+    if (mem().diary.length > 5000) mem().diary.length = 5000;
   }
 }

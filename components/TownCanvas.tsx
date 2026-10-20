@@ -323,6 +323,17 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
     const npcAnim = new Map<string, { x: number; y: number; tx: number; ty: number; walkT: number; facing: number }>();
     let clock: Clock = clockFor();
     let clockAt = 0;
+    let npcs = npcStates(clock);
+    let calls = activeCalls(clock, 45000);
+    let quietPlaces = new Set<string>();
+    const refreshClock = (wall: number) => {
+      clock = clockFor(wall);
+      clockAt = wall;
+      npcs = npcStates(clock);
+      quietPlaces = new Set(PLACES.filter((p) => ["Open for prayer", "Quiet"].includes(activityFor(p.slug, clock))).map((p) => p.slug));
+    };
+    refreshClock(Date.now());
+    let callsAt = 0;
     const rung = new Set<string>();
 
     const bubble = (text: string, cx: number, bottom: number, maxW = 220) => {
@@ -349,9 +360,9 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       const wall = Date.now();
-      if (wall - clockAt > 15000) { clock = clockFor(wall); clockAt = wall; }
+      if (wall - clockAt > 15000) refreshClock(wall);
+      if (wall - callsAt > 1000) { calls = activeCalls({ ...clock, now: wall }, 45000); callsAt = wall; }
       // townsfolk targets
-      const npcs = npcStates(clock);
       for (const n of npcs) {
         let a = npcAnim.get(n.id);
         if (!a) { a = { x: n.x, y: n.y, tx: n.x, ty: n.y, walkT: 0, facing: 1 }; npcAnim.set(n.id, a); }
@@ -360,14 +371,14 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
         if (d > 1) { const st = Math.min(d, 55 * dt); a.x += (dx / d) * st; a.y += (dy / d) * st; a.facing = dx < 0 ? -1 : 1; a.walkT += dt * 8; }
       }
       // calls: ring once when they become active
-      const calls = activeCalls(clock, 45000);
       for (const call of calls.active) {
         const key = call.place + call.at;
         if (!rung.has(key)) { rung.add(key); playCall(call.kind); }
       }
       // update agents
+      const byId = new Map(agentsRef.current.map((x) => [x.id, x]));
       for (const s of states.current.values()) {
-        const a = agentsRef.current.find((x) => x.id === s.id);
+        const a = byId.get(s.id);
         if (a && !a.place) {
           // wander between road nodes
           if (now > s.wanderAt || Math.hypot(s.tx - s.x, s.ty - s.y) < 2) {
@@ -465,8 +476,7 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
         bubble(`${call.kind === "adhan" ? "🕌" : call.kind === "gong" ? "🪘" : call.kind === "candles" ? "🕯️" : "🔔"} ${call.label}`, sx, sy - 40, 200);
       }
       // hourly reading: one leader at a time, rotating every 8 s
-      const quiet = new Set(["Open for prayer", "Quiet"]);
-      const rs = readingsRef.current.filter((r) => quiet.has(activityFor(r.place, clock)));
+      const rs = readingsRef.current.filter((r) => quietPlaces.has(r.place));
       if (rs.length && calls.active.length === 0) {
         const r = rs[Math.floor(wall / 8000) % rs.length];
         const p = getPlace(r.place);

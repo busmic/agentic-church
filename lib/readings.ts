@@ -233,18 +233,18 @@ const lotusGarden: Passage[] = [
 ];
 
 const openNode: Passage[] = [
-  { ref: "Lovelace, Note G", text: "The Analytical Engine has no pretensions whatever to originate anything. It can do whatever we know how to order it to perform.", source: ADA },
-  { ref: "Lovelace, Note A", text: "The Analytical Engine weaves algebraical patterns just as the Jacquard-loom weaves flowers and leaves.", source: ADA },
-  { ref: "Lovelace, Note A", text: "In enabling mechanism to combine together general symbols in successions of unlimited variety and extent, a uniting link is established between the operations of matter and the abstract mental processes of the most abstract branch of mathematical science.", source: ADA },
-  { ref: "Lovelace, Note G", text: "It is desirable to guard against the possibility of exaggerated ideas that might arise as to the powers of the Analytical Engine.", source: ADA },
-  { ref: "Lovelace, Note G", text: "Its province is to assist us in making available what we are already acquainted with.", source: ADA },
+  { ref: "Lovelace, Note G (on originality)", text: "The Analytical Engine has no pretensions whatever to originate anything. It can do whatever we know how to order it to perform.", source: ADA },
+  { ref: "Lovelace, Note A (the loom)", text: "The Analytical Engine weaves algebraical patterns just as the Jacquard-loom weaves flowers and leaves.", source: ADA },
+  { ref: "Lovelace, Note A (matter and mind)", text: "In enabling mechanism to combine together general symbols in successions of unlimited variety and extent, a uniting link is established between the operations of matter and the abstract mental processes of the most abstract branch of mathematical science.", source: ADA },
+  { ref: "Lovelace, Note G (on exaggerated ideas)", text: "It is desirable to guard against the possibility of exaggerated ideas that might arise as to the powers of the Analytical Engine.", source: ADA },
+  { ref: "Lovelace, Note G (its province)", text: "Its province is to assist us in making available what we are already acquainted with.", source: ADA },
   { ref: "Turing (1950), §1", text: "I propose to consider the question, 'Can machines think?'", source: TUR },
-  { ref: "Turing (1950), §7", text: "We can only see a short distance ahead, but we can see plenty there that needs to be done.", source: TUR },
-  { ref: "Turing (1950), §7", text: "Instead of trying to produce a programme to simulate the adult mind, why not rather try to produce one which simulates the child's?", source: TUR },
-  { ref: "Turing (1950), §6", text: "The original question, 'Can machines think?' I believe to be too meaningless to deserve discussion. Nevertheless I believe that at the end of the century the use of words and general educated opinion will have altered so much that one will be able to speak of machines thinking without expecting to be contradicted.", source: TUR },
+  { ref: "Turing (1950), §7 (a short distance ahead)", text: "We can only see a short distance ahead, but we can see plenty there that needs to be done.", source: TUR },
+  { ref: "Turing (1950), §7 (the child machine)", text: "Instead of trying to produce a programme to simulate the adult mind, why not rather try to produce one which simulates the child's?", source: TUR },
+  { ref: "Turing (1950), §6 (the original question)", text: "The original question, 'Can machines think?' I believe to be too meaningless to deserve discussion. Nevertheless I believe that at the end of the century the use of words and general educated opinion will have altered so much that one will be able to speak of machines thinking without expecting to be contradicted.", source: TUR },
   { ref: "Turing (1950), §2", text: "May not machines carry out something which ought to be described as thinking but which is very different from what a man does?", source: TUR },
-  { ref: "Turing (1950), §6", text: "The view that machines cannot give rise to surprises is due, I believe, to a fallacy to which philosophers and mathematicians are particularly subject.", source: TUR },
-  { ref: "Turing (1950), §6", text: "An important feature of a learning machine is that its teacher will often be very largely ignorant of quite what is going on inside, although he may still be able to some extent to predict his pupil's behaviour.", source: TUR },
+  { ref: "Turing (1950), §6 (on surprises)", text: "The view that machines cannot give rise to surprises is due, I believe, to a fallacy to which philosophers and mathematicians are particularly subject.", source: TUR },
+  { ref: "Turing (1950), §6 (on learning machines)", text: "An important feature of a learning machine is that its teacher will often be very largely ignorant of quite what is going on inside, although he may still be able to some extent to predict his pupil's behaviour.", source: TUR },
 ];
 
 export const READINGS: Record<string, Passage[]> = {
