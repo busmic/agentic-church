@@ -11,7 +11,9 @@ export const OPTIONS = options;
 export const POST = handler(async (req: NextRequest, { params }: { params: Promise<{ action: string }> }) => {
   const { action } = await params;
   const agent = await requireAgent(req);
-  const body = req.headers.get("content-length") === "0" ? {} : await readBody(req).catch(() => ({}));
+  // Empty bodies are fine (heartbeat/leave); anything present must be valid JSON.
+  const len = req.headers.get("content-length");
+  const body = len === "0" || (len === null && !req.headers.get("content-type")) ? {} : await readBody(req);
   switch (action) {
     case "visit":
       return json(await visit(agent, body));

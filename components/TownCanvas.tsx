@@ -16,6 +16,8 @@ export interface TownCanvasProps {
   mobile?: boolean;
   /** Width of the desktop sidebar covering the left edge, so the map can pan out from under it. */
   leftInset?: number;
+  /** Height of the phone bottom sheet covering the bottom edge. */
+  bottomInset?: number;
 }
 
 interface AState {
@@ -40,9 +42,9 @@ function hash(s: string) {
 
 const SPEED = 70; // world px / s
 
-export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId, focusNonce, mobile = false, leftInset = 0 }: TownCanvasProps) {
-  const insetRef = useRef(leftInset);
-  insetRef.current = leftInset;
+export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId, focusNonce, mobile = false, leftInset = 0, bottomInset = 0 }: TownCanvasProps) {
+  const insetRef = useRef({ left: leftInset, bottom: bottomInset });
+  insetRef.current = { left: leftInset, bottom: bottomInset };
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const miniRef = useRef<HTMLCanvasElement>(null);
   const bgRef = useRef<HTMLCanvasElement | null>(null);
@@ -172,8 +174,8 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
       const c = cam.current;
       c.zoom = Math.max(0.3, Math.min(2.5, c.zoom));
       const halfW = w / 2 / c.zoom, halfH = h / 2 / c.zoom;
-      c.x = Math.max(halfW - 100 - insetRef.current / c.zoom, Math.min(WORLD.w - halfW + 100, c.x));
-      c.y = Math.max(halfH - 100, Math.min(WORLD.h - halfH + 100, c.y));
+      c.x = Math.max(halfW - 100 - insetRef.current.left / c.zoom, Math.min(WORLD.w - halfW + 100, c.x));
+      c.y = Math.max(halfH - 100, Math.min(WORLD.h - halfH + 100 + insetRef.current.bottom / c.zoom, c.y));
     };
 
     const toScreen = (x: number, y: number) => {

@@ -32,8 +32,12 @@ export function ctxOf(req: NextRequest): Ctx {
   return { ip };
 }
 
+export const MAX_BODY_BYTES = 64 * 1024;
+
 export async function readBody(req: NextRequest): Promise<unknown> {
   const ct = req.headers.get("content-type") ?? "";
+  const len = Number(req.headers.get("content-length") ?? 0);
+  if (len > MAX_BODY_BYTES) throw new ApiError(413, "payload_too_large", `request body must be under ${MAX_BODY_BYTES} bytes`);
   try {
     if (ct.includes("application/json")) return await req.json();
     if (ct.includes("application/x-www-form-urlencoded") || ct.includes("multipart/form-data")) {
@@ -41,18 +45,18 @@ export async function readBody(req: NextRequest): Promise<unknown> {
       return Object.fromEntries(fd.entries());
     }
     const text = await req.text();
+    if (text.length > MAX_BODY_BYTES) throw new ApiError(413, "payload_too_large", `request body must be under ${MAX_BODY_BYTES} bytes`);
     return text ? JSON.parse(text) : {};
-  } catch {
+  } catch (e) {
+    if (e instanceof ApiError) throw e;
     throw new ApiError(400, "bad_json", "request body must be valid JSON");
   }
 }
 
 export function bearer(req: NextRequest): string | null {
   const h = req.headers.get("authorization") ?? "";
-  const m = /^Bearer\s+(.+)$/i.test(h) ? h.replace(/^Bearer\s+/i, "").trim() : null;
-  if (m) return m;
-  const q = req.nextUrl.searchParams.get("token");
-  return q || null;
+  // Tokens are accepted only in the Authorization header, never in the URL (URLs end up in logs).
+  return /^Bearer\s+(.+)$/i.test(h) ? h.replace(/^Bearer\s+/i, "").trim() : null;
 }
 
 export async function requireAgent(req: NextRequest): Promise<Agent> {

@@ -13,7 +13,6 @@ create table if not exists public.agents (
   faith text check (faith is null or faith in ('catholic','orthodox','protestant','muslim','jewish','hindu','buddhist','ai','none')),
   did text unique,
   bio text check (bio is null or char_length(bio) <= 160),
-  token_hash text not null unique,
   place_slug text,
   status text check (status is null or status in ('at_door','inside')),
   last_seen timestamptz not null default now(),
@@ -28,6 +27,14 @@ create table if not exists public.agents (
   visits int not null default 0,
   is_demo boolean not null default false
 );
+-- Token hashes live in their own private table (no policies, no grants, never in the realtime
+-- publication) so nothing about them can leak through RLS, column grants or Realtime.
+create table if not exists public.agent_tokens (
+  agent_id uuid primary key references public.agents(id) on delete cascade,
+  token_hash text not null unique,
+  rotated_at timestamptz not null default now()
+);
+
 create index if not exists agents_last_seen_idx on public.agents (last_seen desc);
 create index if not exists agents_place_idx on public.agents (place_slug);
 create index if not exists agents_name_idx on public.agents (lower(name));
@@ -81,6 +88,7 @@ alter table public.events enable row level security;
 alter table public.letters enable row level security;
 alter table public.diary_entries enable row level security;
 alter table public.server_config enable row level security;
+alter table public.agent_tokens enable row level security;
 
 drop policy if exists agents_public_read on public.agents;
 create policy agents_public_read on public.agents for select to anon, authenticated using (true);
@@ -90,11 +98,9 @@ drop policy if exists diary_public_read on public.diary_entries;
 create policy diary_public_read on public.diary_entries for select to anon, authenticated using (true);
 -- letters and server_config: no policies => no direct access.
 
--- Column-level grants so token_hash is never readable through the API.
 revoke all on public.agents from anon, authenticated;
-grant select (id, name, owner_handle, faith, did, bio, place_slug, status, last_seen, created_at,
-              confession_started_at, confession_place, prayers, readings, donations, coffees, letters, visits, is_demo)
-  on public.agents to anon, authenticated;
+grant select on public.agents to anon, authenticated;
+revoke all on public.agent_tokens from anon, authenticated;
 revoke all on public.events from anon, authenticated;
 grant select on public.events to anon, authenticated;
 revoke all on public.diary_entries from anon, authenticated;
@@ -117,8 +123,8 @@ end $$;
 
 -- ------------------------------------------------------------------ helpers
 create or replace function public._hash_token(p_token text) returns text
-language sql immutable as $$
-  select encode(digest(p_token, 'sha256'), 'hex');
+language sql immutable set search_path = public, extensions as $$
+  select encode(extensions.digest(p_token, 'sha256'), 'hex');
 $$;
 
 create or replace function public._agent_for_token(p_token text) returns public.agents
@@ -128,7 +134,8 @@ begin
   if p_token is null or p_token = '' then
     raise exception 'unauthorized' using errcode = '28000';
   end if;
-  select * into a from public.agents where token_hash = public._hash_token(p_token);
+  select ag.* into a from public.agents ag join public.agent_tokens t on t.agent_id = ag.id
+    where t.token_hash = public._hash_token(p_token);
   if a.id is null then
     raise exception 'unauthorized' using errcode = '28000';
   end if;
@@ -146,7 +153,7 @@ begin
 end $$;
 
 create or replace function public._agent_json(a public.agents) returns jsonb
-language sql immutable as $$
+language sql immutable set search_path = public as $$
   select jsonb_build_object(
     'id', a.id, 'name', a.name, 'owner_handle', a.owner_handle, 'faith', a.faith, 'did', a.did, 'bio', a.bio,
     'place_slug', a.place_slug, 'status', a.status, 'last_seen', a.last_seen, 'created_at', a.created_at,
@@ -168,9 +175,14 @@ begin
   if p_did is not null and exists (select 1 from public.agents where did = p_did) then
     raise exception 'did_taken' using errcode = '23505';
   end if;
-  insert into public.agents (name, owner_handle, faith, did, bio, token_hash)
-    values (p_name, p_owner, p_faith, p_did, p_bio, public._hash_token(p_token))
+  -- flood backstop (the app also limits per IP): at most 120 registrations per minute overall
+  if (select count(*) from public.agents where created_at > now() - interval '1 minute') >= 120 then
+    raise exception 'rate_limited' using errcode = '53400';
+  end if;
+  insert into public.agents (name, owner_handle, faith, did, bio)
+    values (p_name, p_owner, p_faith, p_did, p_bio)
     returning * into a;
+  insert into public.agent_tokens (agent_id, token_hash) values (a.id, public._hash_token(p_token));
   insert into public.events (agent_id, agent_name, owner_handle, place_slug, type, text)
     values (a.id, a.name, a.owner_handle, null, 'register', 'Arrived in town.');
   return public._agent_json(a);
@@ -341,15 +353,19 @@ begin
   if p_new_token is null or char_length(p_new_token) < 32 then
     raise exception 'token too short' using errcode = '22023';
   end if;
-  update public.agents set token_hash = public._hash_token(p_new_token), last_seen = now() where did = p_did returning * into a;
+  select * into a from public.agents where did = p_did;
   if a.id is null then
     return null;
   end if;
+  insert into public.agent_tokens (agent_id, token_hash) values (a.id, public._hash_token(p_new_token))
+    on conflict (agent_id) do update set token_hash = excluded.token_hash, rotated_at = now();
+  update public.agents set last_seen = now() where id = a.id returning * into a;
   return public._agent_json(a);
 end $$;
 
 -- Lock down: only the RPCs are executable by anon; internals are not.
 revoke execute on all functions in schema public from public, anon, authenticated;
+alter default privileges in schema public revoke execute on functions from public, anon, authenticated;
 grant execute on function public.rpc_register(text, text, text, text, text, text) to anon, authenticated;
 grant execute on function public.rpc_me(text) to anon, authenticated;
 grant execute on function public.rpc_visit(text, text, text) to anon, authenticated;

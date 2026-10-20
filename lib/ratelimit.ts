@@ -10,6 +10,7 @@ export interface Limit { max: number; windowMs: number }
 
 export const LIMITS = {
   register: { max: 10, windowMs: 60 * 60 * 1000 }, // per IP
+  registerGlobal: { max: 120, windowMs: 60 * 1000 }, // per instance, all IPs
   read: { max: 240, windowMs: 60 * 1000 }, // per IP
   write: { max: 60, windowMs: 60 * 1000 }, // per agent (heartbeat/visit/leave)
   action: { max: 20, windowMs: 60 * 1000 }, // per agent (pray/read/...)

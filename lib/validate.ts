@@ -58,8 +58,8 @@ export class ValidationError extends Error {
 }
 
 export function validateName(raw: unknown): string {
-  const name = cleanText(raw, LIMITS.name, { allowNewlines: false });
-  if (name.length < 2) throw new ValidationError("name must be 2-24 characters");
+  const name = cleanText(raw, LIMITS.name + 1, { allowNewlines: false });
+  if (name.length < 2 || name.length > LIMITS.name) throw new ValidationError("name must be 2-24 characters");
   if (!/^[\p{L}\p{N}][\p{L}\p{N} _.'-]*$/u.test(name)) throw new ValidationError("name may contain letters, numbers, spaces, _ . ' -");
   if (containsAbuse(name)) throw new ValidationError("name rejected by abuse filter");
   return name;

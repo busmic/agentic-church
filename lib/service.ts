@@ -55,6 +55,7 @@ export function siteUrl(): string {
 
 export async function registerAgent(ctx: Ctx, body: unknown) {
   limit(`register:${ctx.ip}`, RL.register);
+  limit("register:global", RL.registerGlobal); // backstop against header-spoofed IPs
   const b = obj(body);
   const name = validateName(b.name);
   const ownerHandle = validateOwner(b.owner_handle ?? b.owner ?? b.ownerHandle);
