@@ -78,11 +78,6 @@ function shelf(ctx: Ctx, x: number, y: number, w: number, h: number) {
     px(ctx, x + 3, y + 18 + row * 20, w - 6, 2, C.darkbrown);
   }
 }
-function lantern(ctx: Ctx, x: number, y: number) {
-  px(ctx, x + 3, y - 10, 2, 10, C.out);
-  box(ctx, x - 2, y, 12, 16, C.gold, C.out, 2);
-  px(ctx, x + 2, y + 4, 4, 8, C.gold2);
-}
 function plant(ctx: Ctx, x: number, y: number, pot = C.orange) {
   disc(ctx, x, y - 8, 10, C.green, C.out, 2);
   disc(ctx, x - 4, y - 12, 5, C.green2, undefined, 2);
@@ -818,7 +813,7 @@ const cottage = (roof: string): Drawer => (ctx) => {
   // bed with quilt
   box(ctx, 26, 110, 90, 130, C.brown2, C.out, 2);
   px(ctx, 32, 116, 78, 24, C.white);
-  px(ctx, 32, 144, 78, 90, "#b3433a");
+  px(ctx, 32, 144, 78, 90, roof === C.red ? "#b3433a" : roof);
   for (let i = 0; i < 12; i++) px(ctx, 38 + (i % 3) * 24, 150 + Math.floor(i / 3) * 20, 10, 10, C.gold2);
   box(ctx, 40, 258, 50, 36, C.green, C.out, 2); // doormat
   // blue round rug with gold ring

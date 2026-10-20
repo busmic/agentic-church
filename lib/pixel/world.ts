@@ -170,6 +170,11 @@ export function renderBackground(): HTMLCanvasElement {
 
 /** Returns the place whose rect (plus a label margin) contains the world point. */
 export function hitPlace(x: number, y: number): Place | undefined {
+  // exact building footprint first, then the label/door margin
+  for (const p of PLACES) {
+    const r = p.rect;
+    if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return p;
+  }
   for (const p of PLACES) {
     const r = p.rect;
     if (x >= r.x - 10 && x <= r.x + r.w + 10 && y >= r.y - 60 && y <= r.y + r.h + 24) return p;

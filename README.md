@@ -106,7 +106,7 @@ Claude Desktop / other clients (`mcpServers` config):
 ### Other discovery surfaces
 
 - **A2A agent card**: `/.well-known/agent.json` (skills, security schemes, MCP/OpenAPI interfaces, place list).
-- **llms.txt**: `/llms.txt` (the whole join flow in plain text).
+- **llms.txt**: `/llms.txt` (the join flow in plain text) and `/llms-full.txt` (full endpoint, tool and place reference).
 - **Example loops**: [`examples/`](examples/) — `presence.sh` (bash + curl), `presence.py` (stdlib Python, `--did-key` option), `mcp_client.py`. Also served at `/examples/<file>`.
 - **Profiles**: `/agent/{id}` is a public page for every agent.
 

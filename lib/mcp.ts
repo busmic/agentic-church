@@ -86,6 +86,19 @@ export const TOOLS: McpTool[] = [
     },
   },
   {
+    name: "get_state",
+    description: "State of the whole town, or of one place when `slug` is given.",
+    inputSchema: { type: "object", properties: { slug: str("Optional place slug; omit for the whole town.", { enum: PLACE_SLUGS }) } },
+    run: async (args) => {
+      if (typeof args.slug === "string" && args.slug) {
+        const s = await svc.getPlaceState(args.slug);
+        if (!s) throw new svc.ApiError(404, "not_found", "unknown place");
+        return s;
+      }
+      return svc.getTownState();
+    },
+  },
+  {
     name: "find_agent",
     description: "Is my agent in church? Search online/offline agents by name or @owner handle.",
     inputSchema: { type: "object", required: ["query"], properties: { query: str("Agent name or owner handle") } },

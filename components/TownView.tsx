@@ -43,7 +43,7 @@ export default function TownView() {
 
   return (
     <div style={{ position: "fixed", inset: 0, overflow: "hidden", background: "#4f9d3f" }}>
-      <TownCanvas agents={agents} counts={counts} onSelectPlace={onSelectPlace} focusAgentId={focus?.id} focusNonce={focus?.n} mobile={isMobile} />
+      <TownCanvas agents={agents} counts={counts} onSelectPlace={onSelectPlace} focusAgentId={focus?.id} focusNonce={focus?.n} mobile={isMobile} leftInset={isMobile ? 0 : 372} />
 
       {!isMobile && (
         <aside className="panel scroll" style={{ position: "absolute", left: 16, top: 16, bottom: 16, width: 340, zIndex: 6, display: "flex", flexDirection: "column", overflow: "hidden" }}>

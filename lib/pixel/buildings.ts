@@ -3,7 +3,7 @@
  * Respectful by design: the mosque uses only geometric ornament; symbols are simple and neutral.
  */
 import { nodeGlyph } from "./interiors";
-import { C, arch, bench, box, bush, cobbles, crate, crossSymbol, disc, door, fence, flower, gable, lamp, pond, px, shadow, stainedWindow, stall, tri, window, type Ctx } from "./draw";
+import { C, arch, bench, box, bush, cobbles, crate, crossSymbol, disc, door, fence, flower, gable, pond, px, shadow, stainedWindow, stall, tri, window, type Ctx } from "./draw";
 
 export type Rect = { x: number; y: number; w: number; h: number };
 type Drawer = (ctx: Ctx, r: Rect) => void;

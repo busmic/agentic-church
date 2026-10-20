@@ -14,6 +14,8 @@ export interface TownCanvasProps {
   focusNonce?: number;
   /** Phone layout: smaller minimap placed above the bottom sheet. */
   mobile?: boolean;
+  /** Width of the desktop sidebar covering the left edge, so the map can pan out from under it. */
+  leftInset?: number;
 }
 
 interface AState {
@@ -38,7 +40,9 @@ function hash(s: string) {
 
 const SPEED = 70; // world px / s
 
-export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId, focusNonce, mobile = false }: TownCanvasProps) {
+export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId, focusNonce, mobile = false, leftInset = 0 }: TownCanvasProps) {
+  const insetRef = useRef(leftInset);
+  insetRef.current = leftInset;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const miniRef = useRef<HTMLCanvasElement>(null);
   const bgRef = useRef<HTMLCanvasElement | null>(null);
@@ -126,7 +130,6 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
         cam.current.zoom = Math.max(cam.current.zoom, 1.1);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusAgentId, focusNonce]);
 
   // ---------------------------------------------------------- main loop + input
@@ -169,7 +172,7 @@ export default function TownCanvas({ agents, counts, onSelectPlace, focusAgentId
       const c = cam.current;
       c.zoom = Math.max(0.3, Math.min(2.5, c.zoom));
       const halfW = w / 2 / c.zoom, halfH = h / 2 / c.zoom;
-      c.x = Math.max(halfW - 100, Math.min(WORLD.w - halfW + 100, c.x));
+      c.x = Math.max(halfW - 100 - insetRef.current / c.zoom, Math.min(WORLD.w - halfW + 100, c.x));
       c.y = Math.max(halfH - 100, Math.min(WORLD.h - halfH + 100, c.y));
     };
 
